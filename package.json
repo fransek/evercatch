@@ -1,0 +1,61 @@
+{
+  "name": "my-package",
+  "version": "0.1.0",
+  "author": "John Doe <john.doe@mail.com>",
+  "license": "MIT",
+  "description": "My package description",
+  "keywords": [],
+  "homepage": "https://github.com/johndoe/my-package#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johndoe/my-package"
+  },
+  "bugs": {
+    "url": "https://github.com/johndoe/my-package/issues"
+  },
+  "files": [
+    "dist"
+  ],
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
+    }
+  },
+  "sideEffects": false,
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "coverage": "vitest --run --coverage --passWithNoTests",
+    "lint": "eslint",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^12.1.2",
+    "@types/node": "^22.10.6",
+    "@typescript-eslint/eslint-plugin": "^8.20.0",
+    "@typescript-eslint/parser": "^8.20.0",
+    "@vitest/coverage-v8": "2.1.8",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-prettier": "^5.2.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.3.0",
+    "prettier": "^3.4.2",
+    "prettier-plugin-organize-imports": "^4.1.0",
+    "rollup": "^4.30.1",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "prettier --write",
+      "eslint --fix",
+      "bash -c tsc --noEmit"
+    ]
+  }
+}
