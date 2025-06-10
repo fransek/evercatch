@@ -5,13 +5,13 @@
   "license": "MIT",
   "description": "No more uncaught errors",
   "keywords": [],
-  "homepage": "https://github.com/fransekman/evercatch#readme",
+  "homepage": "https://github.com/fransek/evercatch#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/fransekman/evercatch"
+    "url": "git+https://github.com/fransek/evercatch"
   },
   "bugs": {
-    "url": "https://github.com/fransekman/evercatch/issues"
+    "url": "https://github.com/fransek/evercatch/issues"
   },
   "files": [
     "dist"
