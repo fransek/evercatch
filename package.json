@@ -1,17 +1,17 @@
 {
-  "name": "ts-result",
+  "name": "evercatch",
   "version": "0.1.0",
   "author": "Frans Ekman <fransedvinekman@gmail.com>",
   "license": "MIT",
   "description": "No more uncaught errors",
   "keywords": [],
-  "homepage": "https://github.com/fransekman/ts-result#readme",
+  "homepage": "https://github.com/fransekman/evercatch#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/fransekman/ts-result"
+    "url": "git+https://github.com/fransekman/evercatch"
   },
   "bugs": {
-    "url": "https://github.com/fransekman/ts-result/issues"
+    "url": "https://github.com/fransekman/evercatch/issues"
   },
   "files": [
     "dist"
