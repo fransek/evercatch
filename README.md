@@ -1,10 +1,3 @@
-# Package template
+# Catch 'em all
 
-- pnpm
-- TypeScript
-- Vitest
-- Rollup
-- ESLint
-- Prettier
-- Husky
-- Lint-staged
+No more uncaught errors!
