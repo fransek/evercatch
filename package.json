@@ -1,17 +1,17 @@
 {
-  "name": "my-package",
+  "name": "ts-result",
   "version": "0.1.0",
-  "author": "John Doe <john.doe@mail.com>",
+  "author": "Frans Ekman <fransedvinekman@gmail.com>",
   "license": "MIT",
-  "description": "My package description",
+  "description": "No more uncaught errors",
   "keywords": [],
-  "homepage": "https://github.com/johndoe/my-package#readme",
+  "homepage": "https://github.com/fransekman/ts-result#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/johndoe/my-package"
+    "url": "git+https://github.com/fransekman/ts-result"
   },
   "bugs": {
-    "url": "https://github.com/johndoe/my-package/issues"
+    "url": "https://github.com/fransekman/ts-result/issues"
   },
   "files": [
     "dist"
