@@ -33,7 +33,7 @@
     "coverage": "vitest --run --coverage --passWithNoTests",
     "lint": "eslint",
     "prepare": "husky",
-    "publish": "tsx scripts/publish.ts"
+    "script:publish": "tsx scripts/publish.ts"
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "^12.1.2",
