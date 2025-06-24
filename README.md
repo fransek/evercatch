@@ -1,6 +1,18 @@
 # Evercatch
 
+[![Version](https://img.shields.io/npm/v/evercatch)](https://npmjs.com/package/evercatch)
+[![Downloads](https://img.shields.io/npm/dm/evercatch.svg)](https://npmjs.com/package/evercatch)
+[![Minzipped size](https://img.shields.io/bundlephobia/minzip/evercatch)](https://bundlephobia.com/package/evercatch)
+
 No more uncaught errors!
+
+```bash
+npm install evercatch
+# or
+yarn add evercatch
+# or
+pnpm add evercatch
+```
 
 ```typescript
 import { auth } from "auth";
@@ -26,3 +38,5 @@ if (error) {
   console.log(data);
 }
 ```
+
+[Documentation](https://fransek.github.io/evercatch/)

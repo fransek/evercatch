@@ -33,7 +33,7 @@ export class Err<E extends string = string> extends Error {
   /**
    * Creates an {@link Err} instance from an unknown value.
    *
-   * @param error - The error value to convert
+   * @param source - The error value to convert
    * @param label - The label to identify the error type
    * @returns An {@link Err} instance
    *
@@ -44,26 +44,26 @@ export class Err<E extends string = string> extends Error {
    * ```
    */
   public static from<E extends string = string>(
-    error: unknown,
+    source: unknown,
     label: E,
   ): Err<E> {
-    if (error instanceof Error) {
-      return Err.fromError(error, label);
+    if (source instanceof Error) {
+      return Err.fromError(source, label);
     }
-    if (typeof error === "string") {
-      return new Err(label, error, error);
+    if (typeof source === "string") {
+      return new Err(label, source, source);
     }
     try {
-      return new Err(label, JSON.stringify(error), error);
+      return new Err(label, JSON.stringify(source), source);
     } catch {
-      return new Err(label, undefined, error);
+      return new Err(label, undefined, source);
     }
   }
 
   /**
    * Creates a {@link ResultErr} from an unknown value.
    *
-   * @param error - The error value to convert
+   * @param source - The error value to convert
    * @param label - The label to identify the error type
    * @returns A {@link ResultErr}
    *
@@ -75,10 +75,10 @@ export class Err<E extends string = string> extends Error {
    * ```
    */
   public static resultFrom<E extends string = string>(
-    error: unknown,
+    source: unknown,
     label: E,
   ): ResultErr<E> {
-    const e = Err.from(error, label);
+    const e = Err.from(source, label);
     return err(e);
   }
 }
