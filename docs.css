@@ -1,0 +1,19 @@
+@import url("https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&family=Geist:wght@100..900&display=swap");
+
+:root {
+  --dark-color-background: #1f2229;
+  --dark-color-accent: #323a43;
+}
+
+body {
+  font-family: "Geist", serif;
+}
+
+code,
+pre {
+  font-family: "Geist Mono", serif;
+}
+
+.tsd-signature {
+  font-family: "Geist Mono", serif;
+}

@@ -23,6 +23,7 @@ describe("result.ts", () => {
       expect(err.cause).toBe(error.cause);
       expect(err.stack).toBe(error.stack);
       expect(err.name).toBe(error.name);
+      expect(err.source).toBe(error);
     });
 
     it("should create an Err from a string", () => {
@@ -32,18 +33,30 @@ describe("result.ts", () => {
       expect(err.cause).toBeUndefined();
       expect(err.stack).toBeDefined();
       expect(err.name).toBe("Error");
+      expect(err.source).toBe("error");
     });
 
     it("should create an Err from an object", () => {
       const err = Err.from({ message: "error" }, "ERROR_LABEL");
       expect(err.label).toBe("ERROR_LABEL");
       expect(err.message).toBe('{"message":"error"}');
+      expect(err.source).toEqual({ message: "error" });
     });
 
     it("should create an Err from an unserializable object", () => {
-      const err = Err.from(BigInt(0), "ERROR_LABEL");
+      const err = Err.from(0n, "ERROR_LABEL");
       expect(err.label).toBe("ERROR_LABEL");
       expect(err.message).toBe("");
+      expect(err.source).toBe(0n);
+    });
+
+    it("should create a ResultErr from an unknown value", () => {
+      const error = new Error("Error message");
+      const [err, val] = Err.resultFrom(error, "ERROR_LABEL");
+      expect(err.label).toBe("ERROR_LABEL");
+      expect(err.message).toBe("Error message");
+      expect(err.source).toBe(error);
+      expect(val).toBeNull();
     });
   });
 

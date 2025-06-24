@@ -1,0 +1,18 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "includeVersion": true,
+  "categorizeByGroup": true,
+  "navigation": {
+    "includeGroups": true
+  },
+  "customCss": "./docs.css",
+  "name": "Evercatch",
+  "navigationLinks": {
+    "GitHub": "https://github.com/fransek/evercatch"
+  },
+  "groupOrder": ["Core", "Sync", "Async", "*"],
+  "entryPoints": ["src/index.ts"],
+  "headings": {
+    "readme": false
+  }
+}

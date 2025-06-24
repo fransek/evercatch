@@ -1,12 +1,6 @@
-# Evercatch
+import { err, ok, ResultAsyncFn, safeAsync } from ".";
 
-No more uncaught errors!
-
-```typescript
-import { auth } from "auth";
-import { err, ok, safeAsync } from "evercatch";
-
-const fetchUserData = async () => {
+const fetchUserData = (async () => {
   const [authError, user] = await safeAsync(auth(), "AUTH_ERROR");
   if (authError) {
     return err(authError);
@@ -17,7 +11,7 @@ const fetchUserData = async () => {
   }
   const data = await response.json();
   return ok(data);
-};
+}) satisfies ResultAsyncFn;
 
 const [error, data] = await fetchUserData();
 if (error) {
@@ -25,4 +19,7 @@ if (error) {
 } else {
   console.log(data);
 }
-```
+
+function auth(): Promise<{ id: string }> {
+  throw new Error("Function not implemented.");
+}
