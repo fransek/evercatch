@@ -1,10 +1,8 @@
 import typescript from "@rollup/plugin-typescript";
 
-const input = "src/index.ts";
-
 /** @type {() => import('rollup').RollupOptions} */
 const createConfig = (format, dir) => ({
-  input,
+  input: "src/index.ts",
   output: {
     dir,
     format,
@@ -17,6 +15,7 @@ const createConfig = (format, dir) => ({
         declarationDir: dir,
         emitDeclarationOnly: true,
       },
+      exclude: ["**/*.test.ts", "**/*.spec.ts"],
     }),
   ],
 });
