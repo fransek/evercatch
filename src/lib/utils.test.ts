@@ -1,62 +1,85 @@
 import { describe, expect, it } from "vitest";
-import { Err } from "./result";
-import { ResultAsync } from "./types";
-import { fromAsyncThrowable, safeAsync, unsafeAsync } from "./utils-async";
+import { err, ok } from "./result";
+import { fromThrowable, safe, unsafe } from "./utils";
 
-describe("utils.ts", () => {
-  describe("safeAsync", () => {
-    it("should return a ResultOk when the promise resolves", async () => {
-      const promise = Promise.resolve("test");
-      const result = await safeAsync(promise, "ERROR_LABEL");
-      expect(result).toEqual([null, "test"]);
+class CustomError extends Error {
+  readonly name = "CustomError";
+}
+
+describe("utils", () => {
+  describe("safe", () => {
+    it("should return ok result for successful function", () => {
+      const fn = () => 42;
+      const result = safe(fn);
+      expect(result).toEqual(ok(42));
     });
 
-    it("should return a ResultErr when the promise rejects", async () => {
-      const error = new Error("Test error");
-      const promise = Promise.reject(error);
-      const result = await safeAsync(promise, "ERROR_LABEL");
-      expect(result).toEqual([Err.from(error, "ERROR_LABEL"), null]);
+    it("should return err result for function that throws", () => {
+      const testError = new Error("test error");
+      const fn = () => {
+        throw testError;
+      };
+      const [error] = safe(fn);
+      expect(error).toBeInstanceOf(Error);
+    });
+
+    it("should use error factory when provided", () => {
+      const testError = new Error("test error");
+      const fn = () => {
+        throw testError;
+      };
+      const factory = (error: unknown) =>
+        new CustomError("Custom error", { cause: error });
+      const [error, value] = safe(fn, factory);
+      expect(error).toBeInstanceOf(CustomError);
+      expect(error?.cause).toBe(testError);
+      expect(value).toBeNull();
     });
   });
 
-  describe("unsafeAsync", () => {
-    it("should return the value when the ResultAsync is a ResultOk", async () => {
-      const result: ResultAsync<string> = Promise.resolve([null, "test"]);
-      const value = await unsafeAsync(result);
-      expect(value).toBe("test");
+  describe("unsafe", () => {
+    it("should return value for ok result", () => {
+      const result = ok(42);
+      const value = unsafe(result);
+      expect(value).toBe(42);
     });
 
-    it("should throw an error when the ResultAsync is a ResultErr", async () => {
-      const result: ResultAsync<string> = Promise.resolve([
-        new Err("ERROR_LABEL"),
-        null,
-      ]);
-      await expect(() => unsafeAsync(result)).rejects.toThrowError(
-        new Err("ERROR_LABEL"),
-      );
+    it("should throw error for err result", () => {
+      const error = new Error("test error");
+      const result = err(error);
+      expect(() => unsafe(result)).toThrow(error);
     });
   });
 
-  describe("fromAsyncThrowable", () => {
-    const error = new Error("Error message");
-
-    const fn = async (throwError: boolean) => {
-      if (throwError) {
-        throw error;
-      }
-      return "Success!";
-    };
-
-    const safeFn = fromAsyncThrowable(fn, "ERROR_LABEL");
-
-    it("should return a ResultOk when the async function resolves successfully", async () => {
-      const result = await safeFn(false);
-      expect(result).toEqual([null, "Success!"]);
+  describe("fromThrowable", () => {
+    it("should wrap successful function", () => {
+      const fn = (x: number) => x * 2;
+      const safeFn = fromThrowable(fn);
+      const result = safeFn(21);
+      expect(result).toEqual(ok(42));
     });
 
-    it("should return a ResultErr when the async function throws an error", async () => {
-      const result = await safeFn(true);
-      expect(result).toEqual([Err.from(error, "ERROR_LABEL"), null]);
+    it("should handle errors in function", () => {
+      const fn = () => {
+        throw new Error("test error");
+      };
+      const safeFn = fromThrowable(fn);
+      const [error] = safeFn();
+      expect(error).toBeInstanceOf(Error);
+    });
+
+    it("should use error factory when provided", () => {
+      const testError = new Error("test error");
+      const fn = () => {
+        throw testError;
+      };
+      const factory = (error: unknown) =>
+        new CustomError("Custom error", { cause: error });
+      const safeFn = fromThrowable(fn, factory);
+      const [error, value] = safeFn();
+      expect(error).toBeInstanceOf(CustomError);
+      expect(error?.cause).toEqual(testError);
+      expect(value).toBeNull();
     });
   });
 });
