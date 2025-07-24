@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 /**
  * Represents a structured error with a label for identification and a source error.
  *
@@ -11,7 +13,6 @@ export type Err<E extends string = string, S = Error> = {
   source: S;
 };
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Represents a successful result tuple.
  * The first element is `null` (indicating no error), and the second is the success value.
@@ -56,7 +57,7 @@ export type ResultFn<
   A extends any[] = any[],
   T = any,
   E extends string = string,
-  S = Error,
+  S = any,
 > = (...args: A) => Result<T, E, S>;
 
 /**
@@ -83,5 +84,5 @@ export type ResultAsyncFn<
   A extends any[] = any[],
   T = any,
   E extends string = string,
-  S = Error,
+  S = any,
 > = (...args: A) => ResultAsync<T, E, S>;
