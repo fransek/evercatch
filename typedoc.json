@@ -10,7 +10,7 @@
   "navigationLinks": {
     "GitHub": "https://github.com/fransek/evercatch"
   },
-  "groupOrder": ["Core", "Sync", "Async", "*"],
+  "groupOrder": ["Core", "Sync", "Async", "Utils", "*"],
   "entryPoints": ["src/index.ts"],
   "headings": {
     "readme": false

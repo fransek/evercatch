@@ -1,101 +1,58 @@
-import { ResultErr, ResultOk } from "./types";
+import { Err, ResultErr, ResultOk } from "./types";
 
 /**
- * Extends the built-in `Error` class with a label and an optional source.
- * @template E - The type of the error label, constrained to string
+ * Creates an {@link Err} object.
  *
- * @group Core
- */
-export class Err<E extends string = string> extends Error {
-  /** The label identifying the type of error. */
-  label: E;
-  /** The source of the error, if applicable. */
-  source?: unknown;
-
-  constructor(label: E, message?: string, source?: unknown) {
-    super(message);
-    this.label = label;
-    this.name = "Error";
-    this.source = source;
-  }
-
-  private static fromError<E extends string = string>(
-    error: Error,
-    label: E,
-  ): Err<E> {
-    const err = new Err(label, error.message, error);
-    err.cause = error.cause;
-    err.name = error.name;
-    err.stack = error.stack;
-    return err;
-  }
-
-  /**
-   * Creates an {@link Err} instance from an unknown value.
-   *
-   * @param source - The error value to convert
-   * @param label - The label to identify the error type
-   * @returns An {@link Err} instance
-   *
-   * @example
-   * ```typescript
-   * const error = new Error("The requested resource was not found");
-   * const err = Err.from(error, "NOT_FOUND");
-   * ```
-   */
-  public static from<E extends string = string>(
-    source: unknown,
-    label: E,
-  ): Err<E> {
-    if (source instanceof Error) {
-      return Err.fromError(source, label);
-    }
-    if (typeof source === "string") {
-      return new Err(label, source, source);
-    }
-    try {
-      return new Err(label, JSON.stringify(source), source);
-    } catch {
-      return new Err(label, undefined, source);
-    }
-  }
-
-  /**
-   * Creates a {@link ResultErr} from an unknown value.
-   *
-   * @param source - The error value to convert
-   * @param label - The label to identify the error type
-   * @returns A {@link ResultErr}
-   *
-   * @example
-   * ```typescript
-   * const error = new Error("The requested resource was not found");
-   * const result = Err.resultFrom(error, "NOT_FOUND");
-   * // result: [Err<"NOT_FOUND">, null]
-   * ```
-   */
-  public static resultFrom<E extends string = string>(
-    source: unknown,
-    label: E,
-  ): ResultErr<E> {
-    const e = Err.from(source, label);
-    return err(e);
-  }
-}
-
-/**
- * Creates a new {@link ResultOk}.
- *
- * @param value - The success value (default is null)
- * @returns A {@link ResultOk}
+ * @param label - The label for the error.
+ * @param source - The source of the error. If not provided, a new `Error` with the label as the message will be created.
+ * @returns An {@link Err} object.
+ * @template E - A string literal type for the error label.
+ * @template S - The type of the source error.
+ * @group Utils
  *
  * @example
  * ```typescript
- * const result = ok("Success");
- * // result: [null, "Success"]
+ * // Create an error with a source error object
+ * const cause = new TypeError("Something went wrong");
+ * const unexpectedError = createErr("UNEXPECTED_ERROR", cause);
+ * // unexpectedError is { label: "UNEXPECTED_ERROR", source: cause }
+ *
+ * // Create an error without a source
+ * const validationError = createErr("VALIDATION_ERROR");
+ * // validationError is { label: "VALIDATION_ERROR", source: Error("VALIDATION_ERROR") }
+ * ```
+ */
+export const createErr = <E extends string, S = Error>(
+  label: E,
+  source?: S,
+): Err<E, S> => {
+  return {
+    label,
+    source: source ?? (new Error(label) as S),
+  };
+};
+
+/**
+ * Creates a {@link ResultOk} with the given value.
+ *
+ * @param value - The success value to wrap.
+ * @returns A {@link ResultOk} tuple.
+ * @template T - The type of the success value.
+ * @group Core
+ *
+ * @example
+ * ```typescript
+ * const [error, value] = ok({ id: 1, name: 'John Doe' });
+ * // value is { id: 1, name: 'John Doe' }
+ * // error is null
  * ```
  *
- * @group Core
+ * @example
+ * ```typescript
+ * const [error, value] = ok();
+ * // value is null
+ * // error is null
+ * ```
  */
 export const ok = <T = null>(value: T = null as T): ResultOk<T> => [
   null,
@@ -103,45 +60,59 @@ export const ok = <T = null>(value: T = null as T): ResultOk<T> => [
 ];
 
 /**
- * Creates a new {@link ResultErr}.
+ * Creates a {@link ResultErr}.
+ * It can be called with a label and source, or with an existing {@link Err} object.
  *
- * @param label - The error label
- * @param message - Optional error message
- * @returns A {@link ResultErr}
+ * @param label - The error label.
+ * @param source - The source of the error. If not provided, a new `Error` with the label as the message will be created.
+ * @returns A {@link ResultErr} tuple.
+ * @template E - A string literal type for the error label.
+ * @template S - The type of the source error.
+ * @group Core
  *
  * @example
  * ```typescript
- * const result = err("NOT_FOUND", "The requested resource was not found");
- * // result: [Err<"NOT_FOUND">, null]
+ * const [error, value] = err("NOT_FOUND");
+ * // error is { label: "NOT_FOUND", source: Error("NOT_FOUND") }
+ * // value is null
  * ```
  *
- * @group Core
+ * @example
+ * ```typescript
+ * const [error, value] = err("NOT_FOUND", new Error("Resource not found"));
+ * // error is { label: "NOT_FOUND", source: Error("Resource not found") }
+ * // value is null
+ * ```
  */
-export function err<E extends string = string>(
+export function err<E extends string = string, S = Error>(
   label: E,
-  message?: string,
-): ResultErr<E>;
+  source?: S,
+): ResultErr<E, S>;
 /**
- * Creates a {@link ResultErr} from an existing {@link Err} instance.
+ * Creates a failed {@link ResultErr} from an existing {@link Err} object.
  *
- * @param err - An existing Err instance
- * @returns An error {@link Result}
+ * @param err - An existing {@link Err} object.
+ * @returns A {@link ResultErr} tuple.
+ * @template E - A string literal type for the error label.
+ * @template S - The type of the source error.
+ * @group Core
  *
  * @example
  * ```typescript
- * const error = new Err("NOT_FOUND", "The requested resource was not found");
- * const result = err(error);
- * // result: [Err<"NOT_FOUND">, null]
+ * const existingError = createErr("UNAUTHORIZED");
+ * const [error, value] = err(existingError);
+ * // error is { label: "UNAUTHORIZED", source: Error("UNAUTHORIZED") }
+ * // value is null
  * ```
- *
- * @group Core
  */
-export function err<E extends string = string>(err: Err<E>): ResultErr<E>;
-export function err<E extends string>(
-  labelOrErr: E | Err<E>,
-  message?: string,
-): ResultErr<E> {
+export function err<E extends string = string, S = unknown>(
+  err: Err<E, S>,
+): ResultErr<E, S>;
+export function err<E extends string = string, S = unknown>(
+  labelOrErr: E | Err<E, S>,
+  source?: S,
+): ResultErr<E, S> {
   const error =
-    labelOrErr instanceof Err ? labelOrErr : new Err(labelOrErr, message);
+    typeof labelOrErr === "object" ? labelOrErr : createErr(labelOrErr, source);
   return [error, null];
 }

@@ -1,19 +1,21 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { err, Err, ok } from "./result";
+import { err, ok } from "./result";
 import { ResultAsync, ResultAsyncFn } from "./types";
 
 /**
- * Wraps a promise in a try-catch block and returns a {@link ResultAsync}.
+ * Wraps a `Promise` in a `try-catch` block to safely execute it and returns a {@link ResultAsync}.
  *
- * @param promise - The promise to execute safely
- * @param label - The error label to use if the promise rejects
- * @returns A {@link Result} containing either the successful value or an error with the provided label
+ * @param promise - The promise to execute safely.
+ * @param label - The error label to use if the promise rejects.
+ * @returns A {@link ResultAsync} containing either the success value or a structured error.
+ * @template T - The type of the success value.
+ * @template E - A string literal type for the error label.
  *
  * @example
  * ```typescript
  * const [error, value] = await safeAsync(fetch('https://api.example.com/data'), 'FETCH_ERROR');
  * if (error) {
- *   console.error(error.message);
+ *   console.error(error.source);
  * } else {
  *   console.log(value);
  * }
@@ -21,28 +23,35 @@ import { ResultAsync, ResultAsyncFn } from "./types";
  *
  * @group Async
  */
-export const safeAsync = async <T, E extends string>(
+export const safeAsync = async <T, E extends string = string>(
   promise: Promise<T>,
   label: E,
-): ResultAsync<T, E> => {
+): ResultAsync<T, E, unknown> => {
   try {
     return ok(await promise);
   } catch (error) {
-    return err(Err.from(error, label));
+    return err(label, { source: error });
   }
 };
 
 /**
- * Extracts the successful value from a {@link ResultAsync}, throwing an error if it represents a failure.
+ * Extracts the successful value from a {@link ResultAsync}, or throws the error if it's a failure.
  *
- * @param result - A {@link ResultAsync}
- * @returns The success value if present
- * @throws An {@link Err} if the {@link Result} contains an error
+ * @param result - The {@link ResultAsync} to process.
+ * @returns A `Promise` that resolves with the success value.
+ * @throws The {@link Err} object if the result is a failure.
+ * @template T - The type of the success value.
+ * @template E - A string literal type for the error label.
  *
  * @example
  * ```typescript
- * const value = await unsafe(someSafeAsyncFunction());
- * // If someSafeAsyncFunction() returns an error, the error will be thrown
+ * const result = someSafeAsyncFunction();
+ * try {
+ *   const value = await unsafeAsync(result);
+ *   console.log('Success:', value);
+ * } catch (error) {
+ *   console.error(error.source);
+ * }
  * ```
  *
  * @group Async
@@ -58,17 +67,24 @@ export const unsafeAsync = async <T, E extends string>(
 };
 
 /**
- * Wraps an async function that may throw into a function that returns a {@link ResultAsync}.
+ * Converts an async function that may throw an error into a function that returns a {@link ResultAsync}.
  *
- * @param fn - The async function to wrap that may throw an error
- * @param label - A label to identify the error when the function throws
- * @returns A function that returns a {@link ResultAsync}
+ * @param fn - The async function that may throw an error.
+ * @param label - The error label to use if the function throws.
+ * @returns A new async function that wraps the original function and returns a {@link ResultAsync}.
+ * @template A - The arguments of the function.
+ * @template T - The return type of the function.
+ * @template E - A string literal type for the error label.
  *
  * @example
  * ```typescript
  * const safeFetch = fromAsyncThrowable(fetch, 'FETCH_ERROR');
- * const success = await safeFetch('https://api.example.com/data'); // [null, data]
- * const fail = await safeFetch('invalid-url'); // [Err<'FETCH_ERROR'>, undefined]
+ * const [error, response] = await safeFetch('https://api.example.com/data');
+ * if (error) {
+ *   // Handle fetch error
+ * } else {
+ *   // Use response
+ * }
  * ```
  *
  * @group Async
@@ -76,8 +92,8 @@ export const unsafeAsync = async <T, E extends string>(
 export const fromAsyncThrowable = <A extends any[], T, E extends string>(
   fn: (...args: A) => Promise<T>,
   label: E,
-): ResultAsyncFn<A, T, E> => {
-  return async (...args: A): ResultAsync<T, E> => {
+): ResultAsyncFn<A, T, E, unknown> => {
+  return async (...args: A): ResultAsync<T, E, unknown> => {
     return await safeAsync(fn(...args), label);
   };
 };

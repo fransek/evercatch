@@ -1,21 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { Err } from "./result";
+import { createErr } from "./result";
 import { ResultAsync } from "./types";
 import { fromAsyncThrowable, safeAsync, unsafeAsync } from "./utils-async";
 
-describe("utils.ts", () => {
+describe("utils-async.ts", () => {
   describe("safeAsync", () => {
     it("should return a ResultOk when the promise resolves", async () => {
       const promise = Promise.resolve("test");
-      const result = await safeAsync(promise, "ERROR_LABEL");
-      expect(result).toEqual([null, "test"]);
+      const [error, value] = await safeAsync(promise, "ERROR_LABEL");
+      expect(error).toBeNull();
+      expect(value).toBe("test");
     });
 
     it("should return a ResultErr when the promise rejects", async () => {
       const error = new Error("Test error");
       const promise = Promise.reject(error);
-      const result = await safeAsync(promise, "ERROR_LABEL");
-      expect(result).toEqual([Err.from(error, "ERROR_LABEL"), null]);
+      const [err, value] = await safeAsync(promise, "ERROR_LABEL");
+      expect(err).toEqual(createErr("ERROR_LABEL", { source: error }));
+      expect(value).toBeNull();
     });
   });
 
@@ -27,13 +29,9 @@ describe("utils.ts", () => {
     });
 
     it("should throw an error when the ResultAsync is a ResultErr", async () => {
-      const result: ResultAsync<string> = Promise.resolve([
-        new Err("ERROR_LABEL"),
-        null,
-      ]);
-      await expect(() => unsafeAsync(result)).rejects.toThrowError(
-        new Err("ERROR_LABEL"),
-      );
+      const err = createErr("ERROR_LABEL");
+      const result: ResultAsync<string> = Promise.resolve([err, null]);
+      await expect(unsafeAsync(result)).rejects.toEqual(err);
     });
   });
 
@@ -50,13 +48,15 @@ describe("utils.ts", () => {
     const safeFn = fromAsyncThrowable(fn, "ERROR_LABEL");
 
     it("should return a ResultOk when the async function resolves successfully", async () => {
-      const result = await safeFn(false);
-      expect(result).toEqual([null, "Success!"]);
+      const [error, value] = await safeFn(false);
+      expect(error).toBeNull();
+      expect(value).toBe("Success!");
     });
 
     it("should return a ResultErr when the async function throws an error", async () => {
-      const result = await safeFn(true);
-      expect(result).toEqual([Err.from(error, "ERROR_LABEL"), null]);
+      const [err, value] = await safeFn(true);
+      expect(err).toEqual(createErr("ERROR_LABEL", { source: error }));
+      expect(value).toBeNull();
     });
   });
 });
