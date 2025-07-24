@@ -1,12 +1,10 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 /**
  * Represents a structured error with a label for identification and a source error.
  *
  * @template E - A string literal type for the error label.
  * @template S - The type of the source error.
  */
-export type Err<E extends string = string, S = Error> = {
+export type Err<E extends string = string, S = unknown> = {
   /** The label identifying the type of error. */
   label: E;
   /** The source of the error. Can be any value, but typically an `Error` object. */
@@ -28,7 +26,7 @@ export type ResultOk<T> = readonly [null, T];
  * @template E - A string literal type for the error label.
  * @template S - The type of the source error.
  */
-export type ResultErr<E extends string = string, S = Error> = readonly [
+export type ResultErr<E extends string = string, S = unknown> = readonly [
   Err<E, S>,
   null,
 ];
@@ -41,7 +39,7 @@ export type ResultErr<E extends string = string, S = Error> = readonly [
  * @template E - A string literal type for the error label.
  * @template S - The type of the source error.
  */
-export type Result<T, E extends string = string, S = Error> =
+export type Result<T, E extends string = string, S = unknown> =
   | ResultOk<T>
   | ResultErr<E, S>;
 
@@ -54,10 +52,11 @@ export type Result<T, E extends string = string, S = Error> =
  * @template S - The type of the source error.
  */
 export type ResultFn<
-  A extends any[] = any[],
-  T = any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  A extends unknown[] = any[],
+  T = unknown,
   E extends string = string,
-  S = any,
+  S = unknown,
 > = (...args: A) => Result<T, E, S>;
 
 /**
@@ -68,7 +67,7 @@ export type ResultFn<
  * @template E - A string literal type for the error label.
  * @template S - The type of the source error.
  */
-export type ResultAsync<T, E extends string = string, S = Error> = Promise<
+export type ResultAsync<T, E extends string = string, S = unknown> = Promise<
   Result<T, E, S>
 >;
 
@@ -81,8 +80,9 @@ export type ResultAsync<T, E extends string = string, S = Error> = Promise<
  * @template S - The type of the source error.
  */
 export type ResultAsyncFn<
-  A extends any[] = any[],
-  T = any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  A extends unknown[] = any[],
+  T = unknown,
   E extends string = string,
-  S = any,
+  S = unknown,
 > = (...args: A) => ResultAsync<T, E, S>;

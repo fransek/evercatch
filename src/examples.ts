@@ -48,7 +48,7 @@ export const fetchAndValidate = async <S extends z.Schema>(
 const url = "https://jsonplaceholder.typicode.com/posts/1";
 
 const schema = z.object({
-  userIds: z.number(),
+  userId: z.number(),
   id: z.number(),
   title: z.string(),
   body: z.string(),
@@ -57,11 +57,7 @@ const schema = z.object({
 const [error, data] = await fetchAndValidate(url, schema);
 
 if (error) {
-  if (error.label === "SCHEMA_VALIDATION_ERROR") {
-    console.error("Schema validation failed:", error.source.type);
-  } else {
-    console.error(error.source);
-  }
+  console.error(error.source);
 } else {
   console.log(data);
 }
