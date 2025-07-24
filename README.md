@@ -25,7 +25,7 @@ const fetchUserData = async () => {
   }
   const response = await fetch(`https://api.example.com/user/${user.id}`);
   if (!response.ok) {
-    return err("FETCH_ERROR", "Failed to fetch user data");
+    return err("FETCH_ERROR", new Error("Failed to fetch user data"));
   }
   const data = await response.json();
   return ok(data);
