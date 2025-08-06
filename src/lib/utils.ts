@@ -46,12 +46,7 @@ export function safe<T, E extends string>(
  * @example
  * ```typescript
  * const result = someSafeFunction();
- * try {
- *   const value = unsafe(result);
- *   console.log('Success:', value);
- * } catch (error) {
- *   console.error(error.source);
- * }
+ * const value = unsafe(result); // Throws if result is an error
  * ```
  *
  * @group Sync

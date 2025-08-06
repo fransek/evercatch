@@ -46,12 +46,7 @@ export async function safeAsync<T, E extends string = string>(
  * @example
  * ```typescript
  * const result = someSafeAsyncFunction();
- * try {
- *   const value = await unsafeAsync(result);
- *   console.log('Success:', value);
- * } catch (error) {
- *   console.error(error.source);
- * }
+ * const value = await unsafeAsync(result); // Throws if result is an error
  * ```
  *
  * @group Async
