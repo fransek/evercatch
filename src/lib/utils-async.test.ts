@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createErr } from "./result";
+import { Err } from "./result";
 import { Result } from "./types";
 import { fromThrowable, safe, unsafe } from "./utils";
 
@@ -18,7 +18,7 @@ describe("utils.ts", () => {
         throw error;
       };
       const [err, value] = safe(fn, "ERROR_LABEL");
-      expect(err).toEqual(createErr("ERROR_LABEL", { source: error }));
+      expect(err).toEqual(new Err("ERROR_LABEL", { source: error }));
       expect(value).toBeNull();
     });
   });
@@ -31,7 +31,7 @@ describe("utils.ts", () => {
     });
 
     it("should throw an error when the Result is a ResultErr", () => {
-      const err = createErr("ERROR_LABEL");
+      const err = new Err("ERROR_LABEL");
       const result: Result<string> = [err, null];
       expect(() => unsafe(result)).toThrow(Error);
     });
@@ -57,7 +57,7 @@ describe("utils.ts", () => {
 
     it("should return a ResultErr when the function throws an error", () => {
       const [err, value] = safeFn(true);
-      expect(err).toEqual(createErr("ERROR_LABEL", { source: error }));
+      expect(err).toEqual(new Err("ERROR_LABEL", { source: error }));
       expect(value).toBeNull();
     });
   });

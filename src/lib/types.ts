@@ -1,15 +1,4 @@
-/**
- * Represents a structured error with a label for identification and a source error.
- *
- * @template E - A string literal type for the error label.
- * @template S - The type of the source error.
- */
-export type Err<E extends string = string, S = unknown> = {
-  /** The label identifying the type of error. */
-  label: E;
-  /** The source of the error. Can be any value, but typically an `Error` object. */
-  source: S;
-};
+import { Err } from "./result";
 
 /**
  * Represents a successful result tuple.

@@ -11,7 +11,7 @@ class ResponseError extends Error {
   }
 }
 
-const safeFetch = fromAsyncThrowable(fetch, "FETCH_ERROR");
+const safeFetch = fromAsyncThrowable(fetch, "fetch_error");
 
 export const fetchAndValidate = async <S extends z.Schema>(
   url: string,
@@ -24,12 +24,12 @@ export const fetchAndValidate = async <S extends z.Schema>(
   }
 
   if (!response.ok) {
-    return err("RESPONSE_NOT_OK", new ResponseError(response));
+    return err("response_not_ok", new ResponseError(response));
   }
 
   const [parseError, parsed] = await safeAsync(
     response.json(),
-    "JSON_PARSE_ERROR",
+    "json_parse_error",
   );
 
   if (parseError) {
@@ -39,7 +39,7 @@ export const fetchAndValidate = async <S extends z.Schema>(
   const { success, data, error } = schema.safeParse(parsed);
 
   if (!success) {
-    return err("SCHEMA_VALIDATION_ERROR", error);
+    return err("schema_validation_error", error);
   }
 
   return ok(data);

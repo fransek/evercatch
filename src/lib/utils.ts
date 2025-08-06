@@ -13,7 +13,7 @@ import { Result, ResultFn } from "./types";
  *
  * @example
  * ```typescript
- * const [error, value] = safe(() => JSON.parse('{"foo": "bar"}'), 'JSON_PARSE_ERROR');
+ * const [error, value] = safe(() => JSON.parse('{"foo": "bar"}'), 'json_parse_error');
  * if (error) {
  *   console.error(error.source);
  * } else {
@@ -23,16 +23,16 @@ import { Result, ResultFn } from "./types";
  *
  * @group Sync
  */
-export const safe = <T, E extends string>(
+export function safe<T, E extends string>(
   fn: () => T,
   label: E,
-): Result<T, E, unknown> => {
+): Result<T, E, unknown> {
   try {
     return ok(fn());
   } catch (error) {
     return err(label, { source: error });
   }
-};
+}
 
 /**
  * Extracts the successful value from a {@link Result}, or throws the error if it's a failure.
@@ -56,13 +56,13 @@ export const safe = <T, E extends string>(
  *
  * @group Sync
  */
-export const unsafe = <T, E extends string>(result: Result<T, E>): T => {
+export function unsafe<T, E extends string>(result: Result<T, E>): T {
   const [error, value] = result;
   if (error) {
     throw error.source;
   }
   return value;
-};
+}
 
 /**
  * Converts a function that may throw an error into a function that returns a {@link Result}.
@@ -76,7 +76,7 @@ export const unsafe = <T, E extends string>(result: Result<T, E>): T => {
  *
  * @example
  * ```typescript
- * const safeJsonParse = fromThrowable(JSON.parse, 'JSON_PARSE_ERROR');
+ * const safeJsonParse = fromThrowable(JSON.parse, 'json_parse_error');
  * const [error, data] = safeJsonParse('{"key": "value"}');
  * if (error) {
  *   // Handle parsing error
@@ -87,11 +87,11 @@ export const unsafe = <T, E extends string>(result: Result<T, E>): T => {
  *
  * @group Sync
  */
-export const fromThrowable = <A extends any[], T, E extends string>(
+export function fromThrowable<A extends any[], T, E extends string>(
   fn: (...args: A) => T,
   label: E,
-): ResultFn<A, T, E, unknown> => {
+): ResultFn<A, T, E, unknown> {
   return (...args: A): Result<T, E, unknown> => {
     return safe(() => fn(...args), label);
   };
-};
+}

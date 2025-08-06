@@ -18,18 +18,18 @@ pnpm add evercatch
 import { auth } from "auth";
 import { err, ok, safeAsync } from "evercatch";
 
-const fetchUserData = async () => {
-  const [authError, user] = await safeAsync(auth(), "AUTH_ERROR");
+async function fetchUserData() {
+  const [authError, user] = await safeAsync(auth(), "auth_error");
   if (authError) {
     return err(authError);
   }
   const response = await fetch(`https://api.example.com/user/${user.id}`);
   if (!response.ok) {
-    return err("FETCH_ERROR", new Error("Failed to fetch user data"));
+    return err("fetch_error", new Error("Failed to fetch user data"));
   }
   const data = await response.json();
   return ok(data);
-};
+}
 
 const [error, data] = await fetchUserData();
 if (error) {

@@ -13,7 +13,7 @@ import { ResultAsync, ResultAsyncFn } from "./types";
  *
  * @example
  * ```typescript
- * const [error, value] = await safeAsync(fetch('https://api.example.com/data'), 'FETCH_ERROR');
+ * const [error, value] = await safeAsync(fetch('https://api.example.com/data'), 'fetch_error');
  * if (error) {
  *   console.error(error.source);
  * } else {
@@ -23,16 +23,16 @@ import { ResultAsync, ResultAsyncFn } from "./types";
  *
  * @group Async
  */
-export const safeAsync = async <T, E extends string = string>(
+export async function safeAsync<T, E extends string = string>(
   promise: Promise<T>,
   label: E,
-): ResultAsync<T, E, unknown> => {
+): ResultAsync<T, E, unknown> {
   try {
     return ok(await promise);
   } catch (error) {
     return err(label, { source: error });
   }
-};
+}
 
 /**
  * Extracts the successful value from a {@link ResultAsync}, or throws the error if it's a failure.
@@ -56,15 +56,15 @@ export const safeAsync = async <T, E extends string = string>(
  *
  * @group Async
  */
-export const unsafeAsync = async <T, E extends string>(
+export async function unsafeAsync<T, E extends string>(
   result: ResultAsync<T, E>,
-): Promise<T> => {
+): Promise<T> {
   const [error, value] = await result;
   if (error) {
     throw error;
   }
   return value;
-};
+}
 
 /**
  * Converts an async function that may throw an error into a function that returns a {@link ResultAsync}.
@@ -78,7 +78,7 @@ export const unsafeAsync = async <T, E extends string>(
  *
  * @example
  * ```typescript
- * const safeFetch = fromAsyncThrowable(fetch, 'FETCH_ERROR');
+ * const safeFetch = fromAsyncThrowable(fetch, 'fetch_error');
  * const [error, response] = await safeFetch('https://api.example.com/data');
  * if (error) {
  *   // Handle fetch error
@@ -89,11 +89,11 @@ export const unsafeAsync = async <T, E extends string>(
  *
  * @group Async
  */
-export const fromAsyncThrowable = <A extends any[], T, E extends string>(
+export function fromAsyncThrowable<A extends any[], T, E extends string>(
   fn: (...args: A) => Promise<T>,
   label: E,
-): ResultAsyncFn<A, T, E, unknown> => {
+): ResultAsyncFn<A, T, E, unknown> {
   return async (...args: A): ResultAsync<T, E, unknown> => {
     return await safeAsync(fn(...args), label);
   };
-};
+}

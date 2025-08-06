@@ -1,36 +1,22 @@
-import { Err, ResultErr, ResultOk } from "./types";
+import { ResultErr, ResultOk } from "./types";
 
 /**
- * Creates an {@link Err} object.
+ * Represents a structured error with a label for identification and a source error.
  *
- * @param label - The label for the error.
- * @param source - The source of the error. If not provided, a new `Error` with the label as the message will be created.
- * @returns An {@link Err} object.
  * @template E - A string literal type for the error label.
  * @template S - The type of the source error.
- * @group Utils
- *
- * @example
- * ```typescript
- * // Create an error with a source error object
- * const cause = new TypeError("Something went wrong");
- * const unexpectedError = createErr("UNEXPECTED_ERROR", cause);
- * // unexpectedError is { label: "UNEXPECTED_ERROR", source: cause }
- *
- * // Create an error without a source
- * const validationError = createErr("VALIDATION_ERROR");
- * // validationError is { label: "VALIDATION_ERROR", source: Error("VALIDATION_ERROR") }
- * ```
  */
-export const createErr = <E extends string, S = Error>(
-  label: E,
-  source?: S,
-): Err<E, S> => {
-  return {
-    label,
-    source: source ?? (new Error(label) as S),
-  };
-};
+export class Err<E extends string = string, S = unknown> {
+  /** The label identifying the type of error. */
+  readonly label: E;
+  /** The source of the error. Can be any value, but typically an `Error` object. */
+  readonly source: S;
+
+  constructor(label: E, source?: S) {
+    this.label = label;
+    this.source = source ?? (new Error(label) as S);
+  }
+}
 
 /**
  * Creates a {@link ResultOk} with the given value.
@@ -54,10 +40,9 @@ export const createErr = <E extends string, S = Error>(
  * // error is null
  * ```
  */
-export const ok = <T = null>(value: T = null as T): ResultOk<T> => [
-  null,
-  value,
-];
+export function ok<T = null>(value: T = null as T): ResultOk<T> {
+  return [null, value];
+}
 
 /**
  * Creates a {@link ResultErr}.
@@ -72,15 +57,15 @@ export const ok = <T = null>(value: T = null as T): ResultOk<T> => [
  *
  * @example
  * ```typescript
- * const [error, value] = err("NOT_FOUND");
- * // error is { label: "NOT_FOUND", source: Error("NOT_FOUND") }
+ * const [error, value] = err("not_found");
+ * // error is { label: "not_found", source: Error("not_found") }
  * // value is null
  * ```
  *
  * @example
  * ```typescript
- * const [error, value] = err("NOT_FOUND", new Error("Resource not found"));
- * // error is { label: "NOT_FOUND", source: Error("Resource not found") }
+ * const [error, value] = err("not_found", new Error("Resource not found"));
+ * // error is { label: "not_found", source: Error("Resource not found") }
  * // value is null
  * ```
  */
@@ -88,6 +73,7 @@ export function err<E extends string = string, S = Error>(
   label: E,
   source?: S,
 ): ResultErr<E, S>;
+
 /**
  * Creates a failed {@link ResultErr} from an existing {@link Err} object.
  *
@@ -99,9 +85,9 @@ export function err<E extends string = string, S = Error>(
  *
  * @example
  * ```typescript
- * const existingError = createErr("UNAUTHORIZED");
+ * const existingError = new Err("unauthorized");
  * const [error, value] = err(existingError);
- * // error is { label: "UNAUTHORIZED", source: Error("UNAUTHORIZED") }
+ * // error is { label: "unauthorized", source: Error("unauthorized") }
  * // value is null
  * ```
  */
@@ -113,6 +99,6 @@ export function err<E extends string = string, S = unknown>(
   source?: S,
 ): ResultErr<E, S> {
   const error =
-    typeof labelOrErr === "object" ? labelOrErr : createErr(labelOrErr, source);
+    typeof labelOrErr === "object" ? labelOrErr : new Err(labelOrErr, source);
   return [error, null];
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createErr } from "./result";
+import { Err } from "./result";
 import { ResultAsync } from "./types";
 import { fromAsyncThrowable, safeAsync, unsafeAsync } from "./utils-async";
 
@@ -16,7 +16,7 @@ describe("utils-async.ts", () => {
       const error = new Error("Test error");
       const promise = Promise.reject(error);
       const [err, value] = await safeAsync(promise, "ERROR_LABEL");
-      expect(err).toEqual(createErr("ERROR_LABEL", { source: error }));
+      expect(err).toEqual(new Err("ERROR_LABEL", { source: error }));
       expect(value).toBeNull();
     });
   });
@@ -29,7 +29,7 @@ describe("utils-async.ts", () => {
     });
 
     it("should throw an error when the ResultAsync is a ResultErr", async () => {
-      const err = createErr("ERROR_LABEL");
+      const err = new Err("ERROR_LABEL");
       const result: ResultAsync<string> = Promise.resolve([err, null]);
       await expect(unsafeAsync(result)).rejects.toEqual(err);
     });
@@ -55,7 +55,7 @@ describe("utils-async.ts", () => {
 
     it("should return a ResultErr when the async function throws an error", async () => {
       const [err, value] = await safeFn(true);
-      expect(err).toEqual(createErr("ERROR_LABEL", { source: error }));
+      expect(err).toEqual(new Err("ERROR_LABEL", { source: error }));
       expect(value).toBeNull();
     });
   });
