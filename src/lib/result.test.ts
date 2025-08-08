@@ -16,6 +16,19 @@ describe("result.ts", () => {
       expect(error.source).toBeInstanceOf(Error);
       expect((error.source as Error).message).toBe("TEST_ERROR");
     });
+
+    describe("tap", () => {
+      it("should perform a side effect and return the Err instance", () => {
+        const error = new Err("TEST_ERROR");
+        let sideEffectCalled = false;
+        const returnedError = error.tap((e) => {
+          sideEffectCalled = true;
+          expect(e).toBe(error);
+        });
+        expect(sideEffectCalled).toBe(true);
+        expect(returnedError).toBe(error);
+      });
+    });
   });
 
   describe("ok", () => {

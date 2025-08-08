@@ -18,6 +18,22 @@ export class Err<E extends string = string, S = unknown> {
   }
 
   /**
+   * Performs a side effect with the error, then returns the error instance for chaining.
+   * @param fn - The function to execute for the side effect.
+   * @returns The `Err` instance.
+   * @group Core
+   *
+   * @example
+   * ```typescript
+   * const [error, value] = new Err("my_error").tap(e => console.error(e.source)).result();
+   * ```
+   */
+  public tap(fn: (error: this) => void): this {
+    fn(this);
+    return this;
+  }
+
+  /**
    * Returns a {@link ResultErr} containing this error and `null`.
    *
    * @returns A {@link ResultErr}.
@@ -25,8 +41,8 @@ export class Err<E extends string = string, S = unknown> {
    *
    * @example
    * ```typescript
-   * const [error, value] = myError.result();
-   * // error is myError
+   * const [error, value] = new Err("my_error").result();
+   * // error is { label: "my_error", source: Error("my_error") }
    * // value is null
    * ```
    */
@@ -90,6 +106,5 @@ export function err<E extends string = string, S = Error>(
   label: E,
   source?: S,
 ): ResultErr<E, S> {
-  const error = new Err(label, source);
-  return [error, null];
+  return new Err(label, source).result();
 }
