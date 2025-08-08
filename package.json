@@ -1,6 +1,6 @@
 {
   "name": "evercatch",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "author": "Frans Ekman <fransedvinekman@gmail.com>",
   "license": "MIT",
   "description": "No more uncaught errors",
