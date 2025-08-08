@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { err, ok } from "./result";
+import { Err, ok } from "./result";
 import { Result, ResultFn } from "./types";
 
 /**
@@ -7,9 +7,8 @@ import { Result, ResultFn } from "./types";
  *
  * @param fn - The function to execute safely.
  * @param label - The error label to use if the function throws an error.
+ * @param onErr - Optional callback to handle the error.
  * @returns A {@link Result} containing either the success value or a structured error.
- * @template T - The type of the success value.
- * @template E - A string literal type for the error label.
  *
  * @example
  * ```typescript
@@ -26,11 +25,14 @@ import { Result, ResultFn } from "./types";
 export function safe<T, E extends string>(
   fn: () => T,
   label: E,
+  onErr?: (err: Err<E, unknown>) => void,
 ): Result<T, E, unknown> {
   try {
     return ok(fn());
   } catch (error) {
-    return err(label, error);
+    const err = new Err(label, error);
+    onErr?.(err);
+    return err.result();
   }
 }
 
@@ -38,10 +40,9 @@ export function safe<T, E extends string>(
  * Extracts the successful value from a {@link Result}, or throws the error if it's a failure.
  *
  * @param result - The {@link Result} to process.
+ * @param onErr - Optional callback to handle the error.
  * @returns The success value if the result is successful.
  * @throws The {@link Err} object if the result is a failure.
- * @template T - The type of the success value.
- * @template E - A string literal type for the error label.
  *
  * @example
  * ```typescript
@@ -51,10 +52,14 @@ export function safe<T, E extends string>(
  *
  * @group Sync
  */
-export function unsafe<T, E extends string>(result: Result<T, E>): T {
-  const [error, value] = result;
-  if (error) {
-    throw error.source;
+export function unsafe<T, E extends string>(
+  result: Result<T, E>,
+  onErr?: (err: Err<E, unknown>) => void,
+): T {
+  const [err, value] = result;
+  if (err) {
+    onErr?.(err);
+    throw err.source;
   }
   return value;
 }
@@ -64,10 +69,8 @@ export function unsafe<T, E extends string>(result: Result<T, E>): T {
  *
  * @param fn - The function that may throw an error.
  * @param label - The error label to use if the function throws.
+ * @param onErr - Optional callback to handle the error.
  * @returns A new function that wraps the original function and returns a {@link Result}.
- * @template A - The arguments of the function.
- * @template T - The return type of the function.
- * @template E - A string literal type for the error label.
  *
  * @example
  * ```typescript
@@ -85,8 +88,9 @@ export function unsafe<T, E extends string>(result: Result<T, E>): T {
 export function fromThrowable<A extends any[], T, E extends string>(
   fn: (...args: A) => T,
   label: E,
+  onErr?: (err: Err<E, unknown>) => void,
 ): ResultFn<A, T, E, unknown> {
   return (...args: A): Result<T, E, unknown> => {
-    return safe(() => fn(...args), label);
+    return safe(() => fn(...args), label, onErr);
   };
 }

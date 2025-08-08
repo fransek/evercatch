@@ -1,5 +1,5 @@
 import * as z from "zod/v4";
-import { err, fromAsyncThrowable, ok, safeAsync } from ".";
+import { Err, err, fromAsyncThrowable, ok, safeAsync } from ".";
 
 class ResponseError extends Error {
   response: Response;
@@ -11,7 +11,11 @@ class ResponseError extends Error {
   }
 }
 
-const safeFetch = fromAsyncThrowable(fetch, "fetch_error");
+export function logErr(error: Err<string, unknown>) {
+  console.error(error.source);
+}
+
+const safeFetch = fromAsyncThrowable(fetch, "fetch_error", logErr);
 
 export const fetchAndValidate = async <S extends z.Schema>(
   url: string,
@@ -24,12 +28,15 @@ export const fetchAndValidate = async <S extends z.Schema>(
   }
 
   if (!response.ok) {
-    return err("response_not_ok", new ResponseError(response));
+    return new Err("response_not_ok", new ResponseError(response))
+      .tap(logErr)
+      .result();
   }
 
   const [parseError, parsed] = await safeAsync(
     response.json(),
     "json_parse_error",
+    logErr,
   );
 
   if (parseError) {

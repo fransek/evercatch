@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { err, ok } from "./result";
+import { Err, ok } from "./result";
 import { ResultAsync, ResultAsyncFn } from "./types";
 
 /**
@@ -7,9 +7,8 @@ import { ResultAsync, ResultAsyncFn } from "./types";
  *
  * @param promise - The promise to execute safely.
  * @param label - The error label to use if the promise rejects.
+ * @param onErr - Optional callback to handle the error.
  * @returns A {@link ResultAsync} containing either the success value or a structured error.
- * @template T - The type of the success value.
- * @template E - A string literal type for the error label.
  *
  * @example
  * ```typescript
@@ -26,11 +25,14 @@ import { ResultAsync, ResultAsyncFn } from "./types";
 export async function safeAsync<T, E extends string = string>(
   promise: Promise<T>,
   label: E,
+  onErr?: (err: Err<E, unknown>) => void,
 ): ResultAsync<T, E, unknown> {
   try {
     return ok(await promise);
   } catch (error) {
-    return err(label, error);
+    const err = new Err(label, error);
+    onErr?.(err);
+    return err.result();
   }
 }
 
@@ -38,10 +40,9 @@ export async function safeAsync<T, E extends string = string>(
  * Extracts the successful value from a {@link ResultAsync}, or throws the error if it's a failure.
  *
  * @param result - The {@link ResultAsync} to process.
+ * @param onErr - Optional callback to handle the error.
  * @returns A `Promise` that resolves with the success value.
  * @throws The {@link Err} object if the result is a failure.
- * @template T - The type of the success value.
- * @template E - A string literal type for the error label.
  *
  * @example
  * ```typescript
@@ -53,10 +54,12 @@ export async function safeAsync<T, E extends string = string>(
  */
 export async function unsafeAsync<T, E extends string>(
   result: ResultAsync<T, E>,
+  onErr?: (err: Err<E, unknown>) => void,
 ): Promise<T> {
-  const [error, value] = await result;
-  if (error) {
-    throw error;
+  const [err, value] = await result;
+  if (err) {
+    onErr?.(err);
+    throw err.source;
   }
   return value;
 }
@@ -66,10 +69,8 @@ export async function unsafeAsync<T, E extends string>(
  *
  * @param fn - The async function that may throw an error.
  * @param label - The error label to use if the function throws.
+ * @param onErr - Optional callback to handle the error.
  * @returns A new async function that wraps the original function and returns a {@link ResultAsync}.
- * @template A - The arguments of the function.
- * @template T - The return type of the function.
- * @template E - A string literal type for the error label.
  *
  * @example
  * ```typescript
@@ -87,8 +88,9 @@ export async function unsafeAsync<T, E extends string>(
 export function fromAsyncThrowable<A extends any[], T, E extends string>(
   fn: (...args: A) => Promise<T>,
   label: E,
+  onErr?: (err: Err<E, unknown>) => void,
 ): ResultAsyncFn<A, T, E, unknown> {
   return async (...args: A): ResultAsync<T, E, unknown> => {
-    return await safeAsync(fn(...args), label);
+    return await safeAsync(fn(...args), label, onErr);
   };
 }

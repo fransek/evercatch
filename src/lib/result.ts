@@ -56,7 +56,6 @@ export class Err<E extends string = string, S = unknown> {
  *
  * @param value - The success value to wrap.
  * @returns A {@link ResultOk}.
- * @template T - The type of the success value.
  * @group Core
  *
  * @example
@@ -79,13 +78,11 @@ export function ok<T = null>(value: T = null as T): ResultOk<T> {
 
 /**
  * Creates a {@link ResultErr}.
- * It can be called with a label and source, or with an existing {@link Err} object.
+ * Shorthand for `new Err(label, source).result()`.
  *
  * @param label - The error label.
  * @param source - The source of the error. If not provided, a new `Error` with the label as the message will be created.
  * @returns A {@link ResultErr}.
- * @template E - A string literal type for the error label.
- * @template S - The type of the source error.
  * @group Core
  *
  * @example
