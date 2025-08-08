@@ -1,7 +1,7 @@
 import { Err } from "./result";
 
 /**
- * Represents a successful result tuple.
+ * Represents a successful result.
  * The first element is `null` (indicating no error), and the second is the success value.
  *
  * @template T - The type of the success value.
@@ -9,7 +9,7 @@ import { Err } from "./result";
 export type ResultOk<T> = readonly [null, T];
 
 /**
- * Represents a failed result tuple.
+ * Represents a failed result.
  * The first element is an {@link Err} object, and the second is `null`.
  *
  * @template E - A string literal type for the error label.

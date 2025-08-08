@@ -20,7 +20,7 @@ export const fetchAndValidate = async <S extends z.Schema>(
   const [fetchError, response] = await safeFetch(url);
 
   if (fetchError) {
-    return err(fetchError);
+    return fetchError.result();
   }
 
   if (!response.ok) {
@@ -33,7 +33,7 @@ export const fetchAndValidate = async <S extends z.Schema>(
   );
 
   if (parseError) {
-    return err(parseError);
+    return parseError.result();
   }
 
   const { success, data, error } = schema.safeParse(parsed);

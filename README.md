@@ -21,7 +21,7 @@ import { err, ok, safeAsync } from "evercatch";
 async function fetchUserData() {
   const [authError, user] = await safeAsync(auth(), "auth_error");
   if (authError) {
-    return err(authError);
+    return authError.result();
   }
   const response = await fetch(`https://api.example.com/user/${user.id}`);
   if (!response.ok) {

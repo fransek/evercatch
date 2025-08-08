@@ -16,13 +16,30 @@ export class Err<E extends string = string, S = unknown> {
     this.label = label;
     this.source = source ?? (new Error(label) as S);
   }
+
+  /**
+   * Returns a {@link ResultErr} containing this error and `null`.
+   *
+   * @returns A {@link ResultErr}.
+   * @group Core
+   *
+   * @example
+   * ```typescript
+   * const [error, value] = myError.result();
+   * // error is myError
+   * // value is null
+   * ```
+   */
+  public result(): ResultErr<E, S> {
+    return [this, null];
+  }
 }
 
 /**
  * Creates a {@link ResultOk} with the given value.
  *
  * @param value - The success value to wrap.
- * @returns A {@link ResultOk} tuple.
+ * @returns A {@link ResultOk}.
  * @template T - The type of the success value.
  * @group Core
  *
@@ -50,7 +67,7 @@ export function ok<T = null>(value: T = null as T): ResultOk<T> {
  *
  * @param label - The error label.
  * @param source - The source of the error. If not provided, a new `Error` with the label as the message will be created.
- * @returns A {@link ResultErr} tuple.
+ * @returns A {@link ResultErr}.
  * @template E - A string literal type for the error label.
  * @template S - The type of the source error.
  * @group Core
@@ -72,33 +89,7 @@ export function ok<T = null>(value: T = null as T): ResultOk<T> {
 export function err<E extends string = string, S = Error>(
   label: E,
   source?: S,
-): ResultErr<E, S>;
-
-/**
- * Creates a failed {@link ResultErr} from an existing {@link Err} object.
- *
- * @param err - An existing {@link Err} object.
- * @returns A {@link ResultErr} tuple.
- * @template E - A string literal type for the error label.
- * @template S - The type of the source error.
- * @group Core
- *
- * @example
- * ```typescript
- * const existingError = new Err("unauthorized");
- * const [error, value] = err(existingError);
- * // error is { label: "unauthorized", source: Error("unauthorized") }
- * // value is null
- * ```
- */
-export function err<E extends string = string, S = unknown>(
-  err: Err<E, S>,
-): ResultErr<E, S>;
-export function err<E extends string = string, S = unknown>(
-  labelOrErr: E | Err<E, S>,
-  source?: S,
 ): ResultErr<E, S> {
-  const error =
-    typeof labelOrErr === "object" ? labelOrErr : new Err(labelOrErr, source);
+  const error = new Err(label, source);
   return [error, null];
 }

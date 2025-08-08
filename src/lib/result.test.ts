@@ -40,11 +40,12 @@ describe("result.ts", () => {
       expect(error?.source).toBe(sourceError);
     });
 
-    it("should create a ResultErr tuple from an existing Err object", () => {
-      const existingErr = new Err("EXISTING_ERROR");
-      const [error, value] = err(existingErr);
-      expect(error).toBe(existingErr);
+    it("should create a ResultErr tuple from a label only", () => {
+      const [error, value] = err("TEST_ERROR");
+      expect(error).toBeDefined();
       expect(value).toBeNull();
+      expect(error.label).toBe("TEST_ERROR");
+      expect(error.source.message).toBe("TEST_ERROR");
     });
   });
 });
