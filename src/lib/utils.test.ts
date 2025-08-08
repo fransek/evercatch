@@ -16,7 +16,7 @@ describe("utils-async.ts", () => {
       const error = new Error("Test error");
       const promise = Promise.reject(error);
       const [err, value] = await safeAsync(promise, "ERROR_LABEL");
-      expect(err).toEqual(new Err("ERROR_LABEL", { source: error }));
+      expect(err).toEqual(new Err("ERROR_LABEL", error));
       expect(value).toBeNull();
     });
   });
@@ -55,7 +55,7 @@ describe("utils-async.ts", () => {
 
     it("should return a ResultErr when the async function throws an error", async () => {
       const [err, value] = await safeFn(true);
-      expect(err).toEqual(new Err("ERROR_LABEL", { source: error }));
+      expect(err).toEqual(new Err("ERROR_LABEL", error));
       expect(value).toBeNull();
     });
   });

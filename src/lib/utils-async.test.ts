@@ -18,7 +18,7 @@ describe("utils.ts", () => {
         throw error;
       };
       const [err, value] = safe(fn, "ERROR_LABEL");
-      expect(err).toEqual(new Err("ERROR_LABEL", { source: error }));
+      expect(err).toEqual(new Err("ERROR_LABEL", error));
       expect(value).toBeNull();
     });
   });
@@ -57,7 +57,7 @@ describe("utils.ts", () => {
 
     it("should return a ResultErr when the function throws an error", () => {
       const [err, value] = safeFn(true);
-      expect(err).toEqual(new Err("ERROR_LABEL", { source: error }));
+      expect(err).toEqual(new Err("ERROR_LABEL", error));
       expect(value).toBeNull();
     });
   });

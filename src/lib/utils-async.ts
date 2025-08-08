@@ -30,7 +30,7 @@ export async function safeAsync<T, E extends string = string>(
   try {
     return ok(await promise);
   } catch (error) {
-    return err(label, { source: error });
+    return err(label, error);
   }
 }
 

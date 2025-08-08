@@ -30,7 +30,7 @@ export function safe<T, E extends string>(
   try {
     return ok(fn());
   } catch (error) {
-    return err(label, { source: error });
+    return err(label, error);
   }
 }
 
