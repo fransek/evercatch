@@ -11,11 +11,12 @@ class ResponseError extends Error {
   }
 }
 
-export function logErr(error: Err<string, unknown>) {
+Err.setGlobalObserver((error: Err) => {
+  console.error(error.label);
   console.error(error.source);
-}
+});
 
-const safeFetch = fromAsyncThrowable(fetch, "fetch_error", logErr);
+const safeFetch = fromAsyncThrowable(fetch, "fetch_error");
 
 export const fetchAndValidate = async <S extends z.Schema>(
   url: string,
@@ -28,15 +29,12 @@ export const fetchAndValidate = async <S extends z.Schema>(
   }
 
   if (!response.ok) {
-    return new Err("response_not_ok", new ResponseError(response))
-      .tap(logErr)
-      .result();
+    return new Err("response_not_ok", new ResponseError(response)).result();
   }
 
   const [parseError, parsed] = await safeAsync(
     response.json(),
     "json_parse_error",
-    logErr,
   );
 
   if (parseError) {
@@ -52,7 +50,7 @@ export const fetchAndValidate = async <S extends z.Schema>(
   return ok(data);
 };
 
-const url = "https://jsonplaceholder.typicode.com/posts/1";
+const url = "httpss://jsonplaceholder.typicode.com/posts/1";
 
 const schema = z.object({
   userId: z.number(),
@@ -64,7 +62,7 @@ const schema = z.object({
 const [error, data] = await fetchAndValidate(url, schema);
 
 if (error) {
-  console.error(error.source);
+  console.log("Error handled");
 } else {
   console.log(data);
 }

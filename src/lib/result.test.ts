@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Err, err, ok } from "./result";
 
 describe("result.ts", () => {
@@ -27,6 +27,17 @@ describe("result.ts", () => {
         });
         expect(sideEffectCalled).toBe(true);
         expect(returnedError).toBe(error);
+      });
+    });
+
+    describe("setGlobalObserver and removeGlobalObserver", () => {
+      it("should set and remove a global observer for Err instances", () => {
+        const observer = vi.fn();
+        Err.setGlobalObserver(observer);
+        new Err("TEST_ERROR");
+        Err.removeGlobalObserver();
+        new Err("TEST_ERROR");
+        expect(observer).toHaveBeenCalledTimes(1);
       });
     });
   });

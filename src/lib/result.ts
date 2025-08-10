@@ -12,9 +12,41 @@ export class Err<E extends string = string, S = unknown> {
   /** The source of the error. Can be any value, but typically an `Error` object. */
   readonly source: S;
 
+  private static globalObserver?: (err: Err) => void;
+
   constructor(label: E, source?: S) {
     this.label = label;
     this.source = source ?? (new Error(label) as S);
+    if (Err.globalObserver) {
+      try {
+        Err.globalObserver(this);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }
+
+  /**
+   * Sets a global observer for all `Err` instances.
+   * The observer will be called with the error instance whenever a new `Err` is created.
+   * Useful for logging or monitoring errors.
+   *
+   * @param observer - The observer function to set.
+   *
+   * @example
+   * ```typescript
+   * Err.setGlobalObserver((error) => {
+   *   console.error(error.source);
+   * });
+   * ```
+   */
+  public static setGlobalObserver(observer: (err: Err) => void) {
+    Err.globalObserver = observer;
+  }
+
+  /** Removes any global observer. */
+  public static removeGlobalObserver(): void {
+    Err.globalObserver = undefined;
   }
 
   /**
