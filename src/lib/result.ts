@@ -28,8 +28,8 @@ export class Err<E extends string = string, S = unknown> {
    * const [error, value] = new Err("my_error").tap(e => console.error(e.source)).result();
    * ```
    */
-  public tap(fn: (error: this) => void): this {
-    fn(this);
+  public tap(fn: ((error: this) => void) | undefined): this {
+    fn?.(this);
     return this;
   }
 

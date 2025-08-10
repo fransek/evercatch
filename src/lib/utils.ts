@@ -30,9 +30,7 @@ export function safe<T, E extends string>(
   try {
     return ok(fn());
   } catch (error) {
-    const err = new Err(label, error);
-    onErr?.(err);
-    return err.result();
+    return new Err(label, error).tap(onErr).result();
   }
 }
 
@@ -58,7 +56,7 @@ export function unsafe<T, E extends string>(
 ): T {
   const [err, value] = result;
   if (err) {
-    onErr?.(err);
+    err.tap(onErr);
     throw err.source;
   }
   return value;
