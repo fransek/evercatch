@@ -16,7 +16,7 @@ pnpm add evercatch
 
 ```typescript
 import { auth } from "auth";
-import { err, ok, safeAsync } from ".";
+import { err, ok, safeAsync } from "evercatch";
 
 async function fetchUserData() {
   const [authError, user] = await safeAsync(auth());
