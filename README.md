@@ -16,22 +16,23 @@ pnpm add evercatch
 
 ```typescript
 import { auth } from "auth";
-import { err, ok, safeAsync } from "evercatch";
+import { err, ok, safeAsync } from ".";
 
 async function fetchUserData() {
-  const [authError, user] = await safeAsync(auth(), "auth_error");
+  const [authError, user] = await safeAsync(auth());
   if (authError) {
-    return authError.result();
+    return err(authError);
   }
   const response = await fetch(`https://api.example.com/user/${user.id}`);
   if (!response.ok) {
-    return err("fetch_error", new Error("Failed to fetch user data"));
+    return err(new Error("Failed to fetch user data"));
   }
   const data = await response.json();
   return ok(data);
 }
 
 const [error, data] = await fetchUserData();
+
 if (error) {
   console.error(error.message);
 } else {
