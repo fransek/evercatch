@@ -60,7 +60,6 @@ describe("safe", () => {
     expect(error).toBeInstanceOf(Error);
     expect(error?.message).toBe("[object Object]");
     expect(error?.cause).toEqual({ message: "test error" });
-    console.log(error);
   });
 
   it("should use transformError option", () => {
