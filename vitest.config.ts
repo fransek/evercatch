@@ -6,7 +6,7 @@ export default defineConfig({
     include: ["src/**/*.test.{ts,tsx}"],
     coverage: {
       include: ["src/**/*.{ts,tsx}"],
-      exclude: ["src/index.{ts,tsx}", "src/**/*.test.{ts,tsx}"],
+      exclude: ["src/**/*.test.{ts,tsx}"],
       reporter: ["text", "json", "html"],
     },
   },
