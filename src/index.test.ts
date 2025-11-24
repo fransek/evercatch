@@ -6,6 +6,8 @@ import {
   ok,
   safe,
   safeAsync,
+  unsafeUnwrap,
+  unsafeUnwrapAsync,
   type Result,
   type ResultAsync,
 } from "./index";
@@ -172,6 +174,36 @@ describe("fromAsyncThrowable", () => {
     const result = await wrapped();
     expect(onError).toHaveBeenCalled();
     expect(result).toEqual([expect.any(Error), null]);
+  });
+});
+
+describe("unsafeUnwrap", () => {
+  it("should return the value when result is ok", () => {
+    const result = ok(42);
+    const value = unsafeUnwrap(result);
+    expect(value).toBe(42);
+  });
+
+  it("should throw the error when result is err", () => {
+    const error = new Error("test error");
+    const result = err(error);
+    expect(() => unsafeUnwrap(result)).toThrow(error);
+  });
+});
+
+describe("unsafeUnwrapAsync", () => {
+  it("should return the value when result is ok", async () => {
+    const result = ok(42);
+    const value = await unsafeUnwrapAsync(Promise.resolve(result));
+    expect(value).toBe(42);
+  });
+
+  it("should throw the error when result is err", async () => {
+    const error = new Error("test error");
+    const result = err(error);
+    await expect(unsafeUnwrapAsync(Promise.resolve(result))).rejects.toThrow(
+      error,
+    );
   });
 });
 

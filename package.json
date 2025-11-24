@@ -32,6 +32,7 @@
     "test:watch": "vitest",
     "coverage": "vitest --run --coverage --passWithNoTests",
     "lint": "eslint",
+    "validate": "tsc --noEmit && pnpm lint && pnpm test",
     "prepare": "husky",
     "script:publish": "tsx scripts/publish.ts",
     "script:release": "tsx scripts/release.ts",
