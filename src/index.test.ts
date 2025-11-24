@@ -6,6 +6,8 @@ import {
   ok,
   safe,
   safeAsync,
+  unsafe,
+  unsafeAsync,
   type Result,
   type ResultAsync,
 } from "./index";
@@ -172,6 +174,69 @@ describe("fromAsyncThrowable", () => {
     const result = await wrapped();
     expect(onError).toHaveBeenCalled();
     expect(result).toEqual([expect.any(Error), null]);
+  });
+});
+
+describe("unsafe", () => {
+  it("should return value when result is ok", () => {
+    const fn = () => ok(42);
+    const value = unsafe(fn);
+    expect(value).toBe(42);
+  });
+
+  it("should throw error when result is err", () => {
+    const error = new Error("test error");
+    const fn = () => err(error);
+    expect(() => unsafe(fn)).toThrow("test error");
+  });
+
+  it("should work with result-returning functions", () => {
+    const fn = () => {
+      const result = safe(() => 10 * 2);
+      return result;
+    };
+    const value = unsafe(fn);
+    expect(value).toBe(20);
+  });
+
+  it("should throw the exact error from result", () => {
+    const customError = new Error("custom error");
+    const fn = () => err(customError);
+    expect(() => unsafe(fn)).toThrow(customError);
+  });
+});
+
+describe("unsafeAsync", () => {
+  it("should return value when result is ok", async () => {
+    const fn = () => safeAsync(Promise.resolve(42));
+    const value = await unsafeAsync(fn);
+    expect(value).toBe(42);
+  });
+
+  it("should throw error when result is err", async () => {
+    const error = new Error("test error");
+    const fn = async () => err(error);
+    await expect(unsafeAsync(fn)).rejects.toThrow("test error");
+  });
+
+  it("should work with async result-returning functions", async () => {
+    const fn = async () => {
+      const result = await safeAsync(Promise.resolve(10 * 2));
+      return result;
+    };
+    const value = await unsafeAsync(fn);
+    expect(value).toBe(20);
+  });
+
+  it("should throw the exact error from result", async () => {
+    const customError = new Error("custom error");
+    const fn = async () => err(customError);
+    await expect(unsafeAsync(fn)).rejects.toThrow(customError);
+  });
+
+  it("should work with promises that reject", async () => {
+    const fn = () => safeAsync(Promise.reject(new Error("rejected")));
+    await expect(unsafeAsync(fn)).rejects.toThrow("rejected");
   });
 });
 
