@@ -173,3 +173,39 @@ export function fromAsyncThrowable<F extends AnyAsyncFunction, E = Error>(
     return await safeAsync(fn(...args), options);
   };
 }
+
+/**
+ * Executes a result-returning function and throws if the result is an error.
+ * @template T The type of the value.
+ * @template E The type of the error.
+ * @param fn The result-returning function to execute.
+ * @returns The value from the result.
+ * @throws The error if the result contains an error.
+ */
+export function unsafe<T, E = Error>(fn: () => Result<T, E>): T {
+  const [error, value] = fn();
+  if (error !== null) {
+    throw error;
+  }
+  // Type assertion needed: TypeScript doesn't narrow value from T | null to T after error check
+  return value as T;
+}
+
+/**
+ * Executes an async result-returning function and throws if the result is an error.
+ * @template T The type of the value.
+ * @template E The type of the error.
+ * @param fn The async result-returning function to execute.
+ * @returns A promise that resolves to the value from the result.
+ * @throws The error if the result contains an error.
+ */
+export async function unsafeAsync<T, E = Error>(
+  fn: () => ResultAsync<T, E>,
+): Promise<T> {
+  const [error, value] = await fn();
+  if (error !== null) {
+    throw error;
+  }
+  // Type assertion needed: TypeScript doesn't narrow value from T | null to T after error check
+  return value as T;
+}
