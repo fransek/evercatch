@@ -187,6 +187,7 @@ export function unsafe<T, E = Error>(fn: () => Result<T, E>): T {
   if (error !== null) {
     throw error;
   }
+  // Type assertion needed: TypeScript doesn't narrow value from T | null to T after error check
   return value as T;
 }
 
@@ -205,5 +206,6 @@ export async function unsafeAsync<T, E = Error>(
   if (error !== null) {
     throw error;
   }
+  // Type assertion needed: TypeScript doesn't narrow value from T | null to T after error check
   return value as T;
 }
