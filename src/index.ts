@@ -65,6 +65,14 @@ export type Options<E = Error> = {
  * @template T The type of the value.
  * @param value The value to wrap in a successful result. Defaults to null if not provided.
  * @returns A ResultOk containing the value.
+ * @example
+ * ```typescript
+ * const [error, value] = ok("Success"); // [null, "Success"]
+ * ```
+ * @example
+ * ```typescript
+ * const [error, value] = ok(); // [null, null]
+ * ```
  */
 export function ok<T = null>(value?: T): ResultOk<T> {
   return [null, value ?? (null as T)] as const;
@@ -75,6 +83,14 @@ export function ok<T = null>(value?: T): ResultOk<T> {
  * @template E The type of the error.
  * @param error The error to wrap in an error result. Defaults to a new Error if not provided.
  * @returns A ResultErr containing the error.
+ * @example
+ * ```typescript
+ * const [error, value] = err(new Error("Oops")); // [Error: Oops, null]
+ * ```
+ * @example
+ * ```typescript
+ * const [error, value] = err(); // [Error, null]
+ * ```
  */
 export function err<E = Error>(error?: E): ResultErr<E> {
   return [error ?? (new Error() as E), null] as const;
@@ -93,10 +109,10 @@ function processError<E = Error>(
   return new Error(String(error), { cause: error }) as E;
 }
 
-function handleError<T, E = Error>(
+function handleError<E = Error>(
   error: unknown,
   { onError, transformError }: Options<E> = {},
-): Result<T, E> {
+): ResultErr<E> {
   const transformed = processError(error, transformError);
   onError?.(transformed);
   return err(transformed);
@@ -109,6 +125,14 @@ function handleError<T, E = Error>(
  * @param fn The function to execute.
  * @param options Options for error handling.
  * @returns A Result containing either the function's return value or the caught error.
+ * @example
+ * ```typescript
+ * const [error, data] = safe(() => JSON.parse('{"foo": "bar"}'));
+ * if (error) {
+ *   console.error(error.message);
+ * } else {
+ *   console.log(data);
+ * }
  */
 export function safe<T, E = Error>(
   fn: () => T,
@@ -128,6 +152,17 @@ export function safe<T, E = Error>(
  * @param promise The promise to await.
  * @param options Options for error handling.
  * @returns A Promise of a Result containing either the resolved value or the caught error.
+ * @example
+ * ```typescript
+ * const [error, data] = await safeAsync(
+ *   fetch("https://api.example.com/data").then((res) => res.json()),
+ * );
+ * if (error) {
+ *   console.error(error.message);
+ * } else {
+ *   console.log(data);
+ * }
+ * ```
  */
 export async function safeAsync<T, E = Error>(
   promise: Promise<T>,
@@ -147,6 +182,17 @@ export async function safeAsync<T, E = Error>(
  * @param fn The function to wrap.
  * @param options Options for error handling.
  * @returns A function that returns a Result.
+ * @example
+ * ```typescript
+ * const safeParse = fromThrowable(JSON.parse);
+ *
+ * const [error, data] = safeParse('{"foo": "bar"}');
+ * if (error) {
+ *   console.error(error.message);
+ * } else {
+ *   console.log(data);
+ * }
+ * ```
  */
 export function fromThrowable<F extends AnyFunction, E = Error>(
   fn: F,
@@ -164,6 +210,18 @@ export function fromThrowable<F extends AnyFunction, E = Error>(
  * @param fn The async function to wrap.
  * @param options Options for error handling.
  * @returns An async function that returns a ResultAsync.
+ * @example
+ * ```typescript
+ * const safeFetch = fromAsyncThrowable(fetch);
+ *
+ * const [error, response] = await safeFetch("https://api.example.com/data");
+ * if (error) {
+ *   console.error(error.message);
+ * } else {
+ *   const data = await response.json();
+ *   console.log(data);
+ * }
+ * ```
  */
 export function fromAsyncThrowable<F extends AnyAsyncFunction, E = Error>(
   fn: F,
@@ -172,4 +230,47 @@ export function fromAsyncThrowable<F extends AnyAsyncFunction, E = Error>(
   return async (...args) => {
     return await safeAsync(fn(...args), options);
   };
+}
+
+/**
+ * Unwraps a Result, throwing the error if it exists.
+ * @template T The type of the value.
+ * @template E The type of the error.
+ * @param result The Result to unwrap.
+ * @returns The unwrapped value.
+ * @throws The error if the result contains an error.
+ * @example
+ * ```typescript
+ * const result = someFunctionThatReturnsResult();
+ * const value = unsafeUnwrap(result);
+ * console.log(value);
+ * ```
+ */
+export function unsafeUnwrap<T, E = Error>(result: Result<T, E>): T {
+  const [error, value] = result;
+  if (error) {
+    throw error;
+  }
+  return value as T;
+}
+
+/**
+ * Unwraps a ResultAsync, throwing the error if it exists.
+ * @template T The type of the value.
+ * @template E The type of the error.
+ * @param resultPromise The ResultAsync to unwrap.
+ * @returns A promise that resolves to the unwrapped value.
+ * @throws The error if the result contains an error.
+ * @example
+ * ```typescript
+ * const result = someAsyncFunctionThatReturnsResult();
+ * const value = await unsafeUnwrapAsync(result);
+ * console.log(value);
+ * ```
+ */
+export async function unsafeUnwrapAsync<T, E = Error>(
+  resultPromise: ResultAsync<T, E>,
+): Promise<T> {
+  const result = await resultPromise;
+  return unsafeUnwrap(result);
 }
