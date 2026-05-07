@@ -4,6 +4,8 @@ import {
   fromAsyncThrowable,
   fromThrowable,
   ok,
+  rethrow,
+  rethrowAsync,
   safe,
   safeAsync,
   unsafeUnwrap,
@@ -116,6 +118,46 @@ describe("safeAsync", () => {
     });
     expect(onError).toHaveBeenCalledWith(expect.any(Error));
     expect(result).toEqual([expect.any(Error), null]);
+  });
+});
+
+describe("rethrow", () => {
+  it("should throw Error with cause for non-Error values", () => {
+    let thrown: unknown;
+    try {
+      rethrow({ message: "test error" });
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(Error);
+    expect((thrown as Error).message).toBe("[object Object]");
+    expect((thrown as Error).cause).toEqual({ message: "test error" });
+  });
+
+  it("should use transform callback when provided", () => {
+    const transform = vi.fn(() => new TypeError("transformed"));
+    expect(() => rethrow("original", transform)).toThrow(TypeError);
+    expect(transform).toHaveBeenCalledWith("original");
+  });
+});
+
+describe("rethrowAsync", () => {
+  it("should reject with Error with cause for non-Error values", async () => {
+    await expect(rethrowAsync({ message: "test error" })).rejects.toMatchObject(
+      {
+        message: "[object Object]",
+        cause: { message: "test error" },
+      },
+    );
+  });
+
+  it("should use transform callback when provided", async () => {
+    const transform = vi.fn(() => new TypeError("transformed"));
+    await expect(rethrowAsync("original", transform)).rejects.toThrow(
+      TypeError,
+    );
+    expect(transform).toHaveBeenCalledWith("original");
   });
 });
 

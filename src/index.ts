@@ -119,6 +119,36 @@ function handleError<E = Error>(
 }
 
 /**
+ * Re-throws an error with optional transformation.
+ * By default, non-Error values are wrapped in an Error with `cause`.
+ * @template E The type of the transformed error.
+ * @param error The error value to re-throw.
+ * @param transformError Optional function to transform the error before throwing.
+ * @throws The transformed error.
+ */
+export function rethrow<E = Error>(
+  error: unknown,
+  transformError?: (err: unknown) => E,
+): never {
+  throw processError(error, transformError);
+}
+
+/**
+ * Asynchronously re-throws an error with optional transformation.
+ * By default, non-Error values are wrapped in an Error with `cause`.
+ * @template E The type of the transformed error.
+ * @param error The error value to re-throw.
+ * @param transformError Optional function to transform the error before throwing.
+ * @returns A rejected promise with the transformed error.
+ */
+export function rethrowAsync<E = Error>(
+  error: unknown,
+  transformError?: (err: unknown) => E,
+): Promise<never> {
+  return Promise.reject(processError(error, transformError));
+}
+
+/**
  * Safely executes a function, catching any errors.
  * @template T The return type of the function.
  * @template E The type of the error.
