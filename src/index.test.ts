@@ -122,10 +122,19 @@ describe("safeAsync", () => {
 });
 
 describe("rethrow", () => {
+  it("should return value when wrapped function succeeds", () => {
+    const wrapped = rethrow((x: number) => x * 2);
+    expect(wrapped(5)).toBe(10);
+  });
+
   it("should throw Error with cause for non-Error values", () => {
     let thrown: unknown;
+    const wrapped = rethrow(() => {
+      throw { message: "test error" };
+    });
+
     try {
-      rethrow({ message: "test error" });
+      wrapped();
     } catch (error) {
       thrown = error;
     }
@@ -135,28 +144,47 @@ describe("rethrow", () => {
     expect((thrown as Error).cause).toEqual({ message: "test error" });
   });
 
-  it("should use transform callback when provided", () => {
+  it("should use transformError option when provided", () => {
     const transform = vi.fn(() => new TypeError("transformed"));
-    expect(() => rethrow("original", transform)).toThrow(TypeError);
+    const wrapped = rethrow(
+      () => {
+        throw "original";
+      },
+      { transformError: transform },
+    );
+
+    expect(() => wrapped()).toThrow(TypeError);
     expect(transform).toHaveBeenCalledWith("original");
   });
 });
 
 describe("rethrowAsync", () => {
-  it("should reject with Error with cause for non-Error values", async () => {
-    await expect(rethrowAsync({ message: "test error" })).rejects.toMatchObject(
-      {
-        message: "[object Object]",
-        cause: { message: "test error" },
-      },
-    );
+  it("should return value when wrapped async function succeeds", async () => {
+    const wrapped = rethrowAsync(async (x: number) => x * 2);
+    await expect(wrapped(5)).resolves.toBe(10);
   });
 
-  it("should use transform callback when provided", async () => {
+  it("should reject with Error with cause for non-Error values", async () => {
+    const wrapped = rethrowAsync(async () => {
+      throw { message: "test error" };
+    });
+
+    await expect(wrapped()).rejects.toMatchObject({
+      message: "[object Object]",
+      cause: { message: "test error" },
+    });
+  });
+
+  it("should use transformError option when provided", async () => {
     const transform = vi.fn(() => new TypeError("transformed"));
-    await expect(rethrowAsync("original", transform)).rejects.toThrow(
-      TypeError,
+    const wrapped = rethrowAsync(
+      async () => {
+        throw "original";
+      },
+      { transformError: transform },
     );
+
+    await expect(wrapped()).rejects.toThrow(TypeError);
     expect(transform).toHaveBeenCalledWith("original");
   });
 });

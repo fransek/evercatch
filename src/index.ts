@@ -119,33 +119,51 @@ function handleError<E = Error>(
 }
 
 /**
- * Re-throws an error with optional transformation.
+ * Wraps a function and re-throws transformed errors.
  * By default, non-Error values are wrapped in an Error with `cause`.
+ * @template F The function type.
  * @template E The type of the transformed error.
- * @param error The error value to re-throw.
- * @param transformError Optional function to transform the error before throwing.
- * @throws The transformed error.
+ * @param fn The function to wrap.
+ * @param options Options for error handling.
+ * @returns A function with the same signature that re-throws transformed errors.
  */
-export function rethrow<E = Error>(
-  error: unknown,
-  transformError?: (err: unknown) => E,
-): never {
-  throw processError(error, transformError);
+export function rethrow<F extends AnyFunction, E = Error>(
+  fn: F,
+  options?: Options<E>,
+): F {
+  return ((...args: Parameters<F>): ReturnType<F> => {
+    try {
+      return fn(...args) as ReturnType<F>;
+    } catch (error) {
+      const transformed = processError(error, options?.transformError);
+      options?.onError?.(transformed);
+      throw transformed;
+    }
+  }) as F;
 }
 
 /**
- * Asynchronously re-throws an error with optional transformation.
+ * Wraps an async function and re-throws transformed errors.
  * By default, non-Error values are wrapped in an Error with `cause`.
+ * @template F The async function type.
  * @template E The type of the transformed error.
- * @param error The error value to re-throw.
- * @param transformError Optional function to transform the error before throwing.
- * @returns A rejected promise with the transformed error.
+ * @param fn The async function to wrap.
+ * @param options Options for error handling.
+ * @returns An async function with the same signature that re-throws transformed errors.
  */
-export function rethrowAsync<E = Error>(
-  error: unknown,
-  transformError?: (err: unknown) => E,
-): Promise<never> {
-  return Promise.reject(processError(error, transformError));
+export function rethrowAsync<F extends AnyAsyncFunction, E = Error>(
+  fn: F,
+  options?: Options<E>,
+): F {
+  return (async (...args: Parameters<F>): Promise<Awaited<ReturnType<F>>> => {
+    try {
+      return await fn(...args);
+    } catch (error) {
+      const transformed = processError(error, options?.transformError);
+      options?.onError?.(transformed);
+      throw transformed;
+    }
+  }) as F;
 }
 
 /**
