@@ -40,4 +40,19 @@ if (error) {
 }
 ```
 
+```typescript
+import { rethrow, rethrowAsync } from "evercatch";
+
+const wrapped = rethrow(() => {
+  throw "unexpected";
+});
+
+const wrappedAsync = rethrowAsync(async () => {
+  throw "unexpected";
+});
+
+wrapped();
+await wrappedAsync();
+```
+
 [Documentation](https://fransek.github.io/evercatch/)
