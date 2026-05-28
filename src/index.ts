@@ -55,8 +55,16 @@ export type ResultAsyncFn<F extends AnyAsyncFunction, E> = (
  */
 export type Options<E = Error> = {
   /** Function to transform the caught error. */
-  transformError?: (err: unknown) => E;
+  mapErr?: (err: unknown) => E;
   /** Callback to handle the error. */
+  tapErr?: (err: E) => void;
+  /**
+   * @deprecated Use `mapErr` instead.
+   */
+  transformError?: (err: unknown) => E;
+  /**
+   * @deprecated Use `tapErr` instead.
+   */
   onError?: (err: E) => void;
 };
 
@@ -98,24 +106,24 @@ export function err<E = Error>(error?: E): ResultErr<E> {
 
 function processError<E = Error>(
   error: unknown,
-  transformError?: (err: unknown) => E,
+  mapErr?: (err: unknown) => E,
 ): E {
-  if (transformError) {
-    return transformError(error);
+  if (mapErr) {
+    return mapErr(error);
   }
   if (error instanceof Error) {
     return error as E;
   }
-  return new Error(String(error), { cause: error }) as E;
+  return new Error(undefined, { cause: error }) as E;
 }
 
 function handleError<E = Error>(
   error: unknown,
-  { onError, transformError }: Options<E> = {},
+  { tapErr, mapErr, onError, transformError }: Options<E> = {},
 ): ResultErr<E> {
-  const transformed = processError(error, transformError);
-  onError?.(transformed);
-  return err(transformed);
+  const mappedErr = processError(error, mapErr ?? transformError);
+  (tapErr ?? onError)?.(mappedErr);
+  return err(mappedErr);
 }
 
 /**
@@ -127,14 +135,14 @@ function handleError<E = Error>(
  * @returns A Result containing either the function's return value or the caught error.
  * @example
  * ```typescript
- * const [error, data] = safe(() => JSON.parse('{"foo": "bar"}'));
+ * const [error, data] = resultFrom(() => JSON.parse('{"foo": "bar"}'));
  * if (error) {
  *   console.error(error.message);
  * } else {
  *   console.log(data);
  * }
  */
-export function safe<T, E = Error>(
+export function resultFrom<T, E = Error>(
   fn: () => T,
   options?: Options<E>,
 ): Result<T, E> {
@@ -154,7 +162,7 @@ export function safe<T, E = Error>(
  * @returns A Promise of a Result containing either the resolved value or the caught error.
  * @example
  * ```typescript
- * const [error, data] = await safeAsync(
+ * const [error, data] = await resultFromPromise(
  *   fetch("https://api.example.com/data").then((res) => res.json()),
  * );
  * if (error) {
@@ -164,7 +172,7 @@ export function safe<T, E = Error>(
  * }
  * ```
  */
-export async function safeAsync<T, E = Error>(
+export async function resultFromPromise<T, E = Error>(
   promise: Promise<T>,
   options?: Options<E>,
 ): ResultAsync<T, E> {
@@ -199,7 +207,7 @@ export function fromThrowable<F extends AnyFunction, E = Error>(
   options?: Options<E>,
 ): ResultFn<F, E> {
   return (...args) => {
-    return safe(() => fn(...args), options);
+    return resultFrom(() => fn(...args), options);
   };
 }
 
@@ -228,7 +236,7 @@ export function fromAsyncThrowable<F extends AnyAsyncFunction, E = Error>(
   options?: Options<E>,
 ): ResultAsyncFn<F, E> {
   return async (...args) => {
-    return await safeAsync(fn(...args), options);
+    return await resultFromPromise(fn(...args), options);
   };
 }
 
@@ -242,11 +250,11 @@ export function fromAsyncThrowable<F extends AnyAsyncFunction, E = Error>(
  * @example
  * ```typescript
  * const result = someFunctionThatReturnsResult();
- * const value = unsafeUnwrap(result);
+ * const value = unwrapOrThrow(result);
  * console.log(value);
  * ```
  */
-export function unsafeUnwrap<T, E = Error>(result: Result<T, E>): T {
+export function unwrapOrThrow<T, E = Error>(result: Result<T, E>): T {
   const [error, value] = result;
   if (error) {
     throw error;
@@ -258,19 +266,155 @@ export function unsafeUnwrap<T, E = Error>(result: Result<T, E>): T {
  * Unwraps a ResultAsync, throwing the error if it exists.
  * @template T The type of the value.
  * @template E The type of the error.
- * @param resultPromise The ResultAsync to unwrap.
+ * @param resultAsync The ResultAsync to unwrap.
  * @returns A promise that resolves to the unwrapped value.
  * @throws The error if the result contains an error.
  * @example
  * ```typescript
  * const result = someAsyncFunctionThatReturnsResult();
- * const value = await unsafeUnwrapAsync(result);
+ * const value = await unwrapAsyncOrThrow(result);
  * console.log(value);
  * ```
  */
-export async function unsafeUnwrapAsync<T, E = Error>(
-  resultPromise: ResultAsync<T, E>,
+export async function unwrapAsyncOrThrow<T, E = Error>(
+  resultAsync: ResultAsync<T, E>,
 ): Promise<T> {
-  const result = await resultPromise;
-  return unsafeUnwrap(result);
+  const result = await resultAsync;
+  return unwrapOrThrow(result);
 }
+
+/**
+ * Unwraps a Result, returning a fallback value if it contains an error.
+ * @template T The type of the value.
+ * @template E The type of the error.
+ * @param result The Result to unwrap.
+ * @param fallback The value to return when the result contains an error.
+ * @returns The unwrapped value or the fallback.
+ * @example
+ * ```typescript
+ * const value = unwrapOr(ok(42), 0);
+ * console.log(value); // 42
+ * ```
+ * @example
+ * ```typescript
+ * const value = unwrapOr(err(new Error("Oops")), 0);
+ * console.log(value); // 0
+ * ```
+ */
+export function unwrapOr<T, E = Error>(result: Result<T, E>, fallback: T): T {
+  const [error, value] = result;
+  if (error) {
+    return fallback;
+  }
+  return value as T;
+}
+
+/**
+ * Unwraps a ResultAsync, returning a fallback value if it contains an error.
+ * @template T The type of the value.
+ * @template E The type of the error.
+ * @param resultAsync The ResultAsync to unwrap.
+ * @param fallback The value to return when the result contains an error.
+ * @returns A promise that resolves to the unwrapped value or the fallback.
+ * @example
+ * ```typescript
+ * const value = await unwrapAsyncOr(Promise.resolve(ok(42)), 0);
+ * console.log(value); // 42
+ * ```
+ * @example
+ * ```typescript
+ * const value = await unwrapAsyncOr(
+ *   Promise.resolve(err(new Error("Oops"))),
+ *   0,
+ * );
+ * console.log(value); // 0
+ * ```
+ */
+export async function unwrapAsyncOr<T, E = Error>(
+  resultAsync: ResultAsync<T, E>,
+  fallback: T,
+): Promise<T> {
+  const result = await resultAsync;
+  return unwrapOr(result, fallback);
+}
+
+/**
+ * Unwraps a Result, computing a fallback value from the error when needed.
+ * @template T The type of the value.
+ * @template E The type of the error.
+ * @param result The Result to unwrap.
+ * @param fallbackFn A function that receives the error and returns a fallback value.
+ * @returns The unwrapped value or the computed fallback.
+ * @example
+ * ```typescript
+ * const value = unwrapOrElse(ok(42), () => 0);
+ * console.log(value); // 42
+ * ```
+ * @example
+ * ```typescript
+ * const value = unwrapOrElse(
+ *   err(new Error("Oops")),
+ *   (error) => error.message.length,
+ * );
+ * console.log(value); // 4
+ * ```
+ */
+export function unwrapOrElse<T, E = Error>(
+  result: Result<T, E>,
+  fallbackFn: (err: E) => T,
+): T {
+  const [error, value] = result;
+  if (error) {
+    return fallbackFn(error);
+  }
+  return value as T;
+}
+
+/**
+ * Unwraps a ResultAsync, computing a fallback value from the error when needed.
+ * @template T The type of the value.
+ * @template E The type of the error.
+ * @param resultAsync The ResultAsync to unwrap.
+ * @param fallbackFn A function that receives the error and returns a fallback value.
+ * @returns A promise that resolves to the unwrapped value or the computed fallback.
+ * @example
+ * ```typescript
+ * const value = await unwrapAsyncOrElse(Promise.resolve(ok(42)), () => 0);
+ * console.log(value); // 42
+ * ```
+ * @example
+ * ```typescript
+ * const value = await unwrapAsyncOrElse(
+ *   Promise.resolve(err(new Error("Oops"))),
+ *   (error) => error.message.length,
+ * );
+ * console.log(value); // 4
+ * ```
+ */
+export async function unwrapAsyncOrElse<T, E = Error>(
+  resultAsync: ResultAsync<T, E>,
+  fallbackFn: (err: E) => T,
+): Promise<T> {
+  const result = await resultAsync;
+  return unwrapOrElse(result, fallbackFn);
+}
+
+/**
+ * @deprecated Use `resultFrom` instead.
+ */
+export const safe = resultFrom;
+
+/**
+ * @deprecated Use `resultFromPromise` instead.
+ */
+export const safeAsync = resultFromPromise;
+
+/**
+ * @deprecated Use `unwrapOrThrow` instead.
+ */
+export const unsafeUnwrap = unwrapOrThrow;
+
+/**
+ * @deprecated Use `unwrapAsyncOrThrow` instead.
+ */
+export const unsafeUnwrapAsync = unwrapAsyncOrThrow;

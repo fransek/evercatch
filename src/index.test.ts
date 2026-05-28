@@ -4,10 +4,18 @@ import {
   fromAsyncThrowable,
   fromThrowable,
   ok,
+  resultFrom,
+  resultFromPromise,
   safe,
   safeAsync,
   unsafeUnwrap,
   unsafeUnwrapAsync,
+  unwrapAsyncOr,
+  unwrapAsyncOrElse,
+  unwrapAsyncOrThrow,
+  unwrapOr,
+  unwrapOrElse,
+  unwrapOrThrow,
   type Result,
   type ResultAsync,
 } from "./index";
@@ -42,31 +50,42 @@ describe("err", () => {
   });
 });
 
-describe("safe", () => {
+describe("resultFrom", () => {
   it("should return ok result when function succeeds", () => {
-    const result = safe(() => 42);
+    const result = resultFrom(() => 42);
     expect(result).toEqual([null, 42]);
   });
 
   it("should return err result when function throws", () => {
-    const result = safe(() => {
+    const result = resultFrom(() => {
       throw new Error("test error");
     });
     expect(result).toEqual([expect.any(Error), null]);
   });
 
   it("should handle non-Error throwables", () => {
-    const [error] = safe(() => {
+    const [error] = resultFrom(() => {
       throw { message: "test error" };
     });
     expect(error).toBeInstanceOf(Error);
-    expect(error?.message).toBe("[object Object]");
     expect(error?.cause).toEqual({ message: "test error" });
   });
 
   it("should use transformError option", () => {
     const transformError = vi.fn(() => new Error("transformed"));
-    const result = safe(
+    const result = resultFrom(
+      () => {
+        throw "original";
+      },
+      { mapErr: transformError },
+    );
+    expect(result).toEqual([expect.any(Error), null]);
+    expect(transformError).toHaveBeenCalledWith("original");
+  });
+
+  it("should support deprecated transformError option", () => {
+    const transformError = vi.fn(() => new Error("transformed"));
+    const result = resultFrom(
       () => {
         throw "original";
       },
@@ -78,7 +97,19 @@ describe("safe", () => {
 
   it("should call onError callback", () => {
     const onError = vi.fn();
-    const result = safe(
+    const result = resultFrom(
+      () => {
+        throw new Error("test");
+      },
+      { tapErr: onError },
+    );
+    expect(onError).toHaveBeenCalledWith(expect.any(Error));
+    expect(result).toEqual([expect.any(Error), null]);
+  });
+
+  it("should support deprecated onError callback", () => {
+    const onError = vi.fn();
+    const result = resultFrom(
       () => {
         throw new Error("test");
       },
@@ -89,20 +120,31 @@ describe("safe", () => {
   });
 });
 
-describe("safeAsync", () => {
+describe("resultFromPromise", () => {
   it("should return ok result when promise resolves", async () => {
-    const result = await safeAsync(Promise.resolve(42));
+    const result = await resultFromPromise(Promise.resolve(42));
     expect(result).toEqual([null, 42]);
   });
 
   it("should return err result when promise rejects", async () => {
-    const result = await safeAsync(Promise.reject(new Error("test error")));
+    const result = await resultFromPromise(
+      Promise.reject(new Error("test error")),
+    );
     expect(result).toEqual([expect.any(Error), null]);
   });
 
   it("should use transformError option", async () => {
     const transformError = vi.fn(() => new Error("transformed"));
-    const result = await safeAsync(Promise.reject("original"), {
+    const result = await resultFromPromise(Promise.reject("original"), {
+      mapErr: transformError,
+    });
+    expect(result).toEqual([expect.any(Error), null]);
+    expect(transformError).toHaveBeenCalledWith("original");
+  });
+
+  it("should support deprecated transformError option", async () => {
+    const transformError = vi.fn(() => new Error("transformed"));
+    const result = await resultFromPromise(Promise.reject("original"), {
       transformError,
     });
     expect(result).toEqual([expect.any(Error), null]);
@@ -111,7 +153,16 @@ describe("safeAsync", () => {
 
   it("should call onError callback", async () => {
     const onError = vi.fn();
-    const result = await safeAsync(Promise.reject(new Error("test")), {
+    const result = await resultFromPromise(Promise.reject(new Error("test")), {
+      tapErr: onError,
+    });
+    expect(onError).toHaveBeenCalledWith(expect.any(Error));
+    expect(result).toEqual([expect.any(Error), null]);
+  });
+
+  it("should support deprecated onError callback", async () => {
+    const onError = vi.fn();
+    const result = await resultFromPromise(Promise.reject(new Error("test")), {
       onError,
     });
     expect(onError).toHaveBeenCalledWith(expect.any(Error));
@@ -136,12 +187,12 @@ describe("fromThrowable", () => {
     expect(result).toEqual([expect.any(Error), null]);
   });
 
-  it("should pass options to safe", () => {
+  it("should pass options to resultFrom", () => {
     const onError = vi.fn();
     const fn = () => {
       throw new Error("test");
     };
-    const wrapped = fromThrowable(fn, { onError });
+    const wrapped = fromThrowable(fn, { tapErr: onError });
     const result = wrapped();
     expect(onError).toHaveBeenCalled();
     expect(result).toEqual([expect.any(Error), null]);
@@ -165,45 +216,138 @@ describe("fromAsyncThrowable", () => {
     expect(result).toEqual([expect.any(Error), null]);
   });
 
-  it("should pass options to safeAsync", async () => {
+  it("should pass options to resultFromPromise", async () => {
     const onError = vi.fn();
     const fn = async () => {
       throw new Error("test");
     };
-    const wrapped = fromAsyncThrowable(fn, { onError });
+    const wrapped = fromAsyncThrowable(fn, { tapErr: onError });
     const result = await wrapped();
     expect(onError).toHaveBeenCalled();
     expect(result).toEqual([expect.any(Error), null]);
   });
 });
 
-describe("unsafeUnwrap", () => {
+describe("unwrapOrThrow", () => {
   it("should return the value when result is ok", () => {
     const result = ok(42);
-    const value = unsafeUnwrap(result);
+    const value = unwrapOrThrow(result);
     expect(value).toBe(42);
   });
 
   it("should throw the error when result is err", () => {
     const error = new Error("test error");
     const result = err(error);
-    expect(() => unsafeUnwrap(result)).toThrow(error);
+    expect(() => unwrapOrThrow(result)).toThrow(error);
   });
 });
 
-describe("unsafeUnwrapAsync", () => {
+describe("unwrapAsyncOrThrow", () => {
   it("should return the value when result is ok", async () => {
     const result = ok(42);
-    const value = await unsafeUnwrapAsync(Promise.resolve(result));
+    const value = await unwrapAsyncOrThrow(Promise.resolve(result));
     expect(value).toBe(42);
   });
 
   it("should throw the error when result is err", async () => {
     const error = new Error("test error");
     const result = err(error);
-    await expect(unsafeUnwrapAsync(Promise.resolve(result))).rejects.toThrow(
+    await expect(unwrapAsyncOrThrow(Promise.resolve(result))).rejects.toThrow(
       error,
     );
+  });
+});
+
+describe("unwrapOr", () => {
+  it("should return the value when result is ok", () => {
+    const result = ok(42);
+    const value = unwrapOr(result, 0);
+    expect(value).toBe(42);
+  });
+
+  it("should return the fallback when result is err", () => {
+    const result = err(new Error("test error"));
+    const value = unwrapOr(result, 0);
+    expect(value).toBe(0);
+  });
+});
+
+describe("unwrapAsyncOr", () => {
+  it("should return the value when result is ok", async () => {
+    const result = ok(42);
+    const value = await unwrapAsyncOr(Promise.resolve(result), 0);
+    expect(value).toBe(42);
+  });
+
+  it("should return the fallback when result is err", async () => {
+    const result = err(new Error("test error"));
+    const value = await unwrapAsyncOr(Promise.resolve(result), 0);
+    expect(value).toBe(0);
+  });
+});
+
+describe("unwrapOrElse", () => {
+  it("should return the value when result is ok without calling fallback", () => {
+    const fallbackFn = vi.fn(() => 0);
+    const result = ok(42);
+
+    const value = unwrapOrElse(result, fallbackFn);
+
+    expect(value).toBe(42);
+    expect(fallbackFn).not.toHaveBeenCalled();
+  });
+
+  it("should return the computed fallback when result is err", () => {
+    const error = new Error("test error");
+    const fallbackFn = vi.fn((err: Error) => err.message.length);
+
+    const value = unwrapOrElse(err(error), fallbackFn);
+
+    expect(value).toBe("test error".length);
+    expect(fallbackFn).toHaveBeenCalledWith(error);
+  });
+});
+
+describe("unwrapAsyncOrElse", () => {
+  it("should return the value when result is ok without calling fallback", async () => {
+    const fallbackFn = vi.fn(() => 0);
+    const result = ok(42);
+
+    const value = await unwrapAsyncOrElse(Promise.resolve(result), fallbackFn);
+
+    expect(value).toBe(42);
+    expect(fallbackFn).not.toHaveBeenCalled();
+  });
+
+  it("should return the computed fallback when result is err", async () => {
+    const error = new Error("test error");
+    const fallbackFn = vi.fn((err: Error) => err.message.length);
+
+    const value = await unwrapAsyncOrElse(
+      Promise.resolve(err(error)),
+      fallbackFn,
+    );
+
+    expect(value).toBe("test error".length);
+    expect(fallbackFn).toHaveBeenCalledWith(error);
+  });
+});
+
+describe("deprecated aliases", () => {
+  it("should keep safe pointing to resultFrom", () => {
+    expect(safe).toBe(resultFrom);
+  });
+
+  it("should keep safeAsync pointing to resultFromPromise", () => {
+    expect(safeAsync).toBe(resultFromPromise);
+  });
+
+  it("should keep unsafeUnwrap pointing to unwrapOrThrow", () => {
+    expect(unsafeUnwrap).toBe(unwrapOrThrow);
+  });
+
+  it("should keep unsafeUnwrapAsync pointing to unwrapAsyncOrThrow", () => {
+    expect(unsafeUnwrapAsync).toBe(unwrapAsyncOrThrow);
   });
 });
 
@@ -220,7 +364,7 @@ describe("Type checks", () => {
   });
 
   it("should work with async results", async () => {
-    const asyncSuccess: ResultAsync<string, Error> = safeAsync(
+    const asyncSuccess: ResultAsync<string, Error> = resultFromPromise(
       Promise.resolve("hello"),
     );
     const result = await asyncSuccess;
