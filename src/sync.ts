@@ -1,5 +1,5 @@
 import { handleError } from "./shared";
-import type { Options, Result, ResultFn } from "./types";
+import type { Result, ResultFn, ResultOptions } from "./types";
 
 /**
  * Safely executes a function, catching any errors.
@@ -21,7 +21,7 @@ import type { Options, Result, ResultFn } from "./types";
  */
 export function resultFrom<T, E = Error>(
   fn: () => T,
-  options?: Options<E>,
+  options?: ResultOptions<E>,
 ): Result<T, E> {
   try {
     return [null, fn()] as const;
@@ -53,7 +53,7 @@ export function resultFrom<T, E = Error>(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function fromThrowable<F extends (...args: any[]) => any, E = Error>(
   fn: F,
-  options?: Options<E>,
+  options?: ResultOptions<E>,
 ): ResultFn<F, E> {
   return (...args) => {
     return resultFrom(() => fn(...args), options);

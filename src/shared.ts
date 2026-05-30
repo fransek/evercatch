@@ -1,4 +1,4 @@
-import type { Options, ResultErr, ResultOk } from "./types";
+import type { ResultErr, ResultOk, ResultOptions } from "./types";
 
 /**
  * Creates a successful result with the given value.
@@ -53,7 +53,7 @@ function processError<E = Error>(
 
 export function handleError<E = Error>(
   error: unknown,
-  { tapErr, mapErr, onError, transformError }: Options<E> = {},
+  { tapErr, mapErr, onError, transformError }: ResultOptions<E> = {},
 ): ResultErr<E> {
   const mappedErr = processError(error, mapErr ?? transformError);
   (tapErr ?? onError)?.(mappedErr);

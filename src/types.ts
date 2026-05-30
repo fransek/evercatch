@@ -48,7 +48,7 @@ export type ResultAsyncFn<F extends (...args: any[]) => Promise<any>, E> = (
  * Options for error handling.
  * @template E The type of the error.
  */
-export type Options<E = Error> = {
+export type ResultOptions<E = Error> = {
   /** Function to transform the caught error. */
   mapErr?: (err: unknown) => E;
   /** Callback to handle the error. */

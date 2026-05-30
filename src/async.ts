@@ -1,6 +1,6 @@
 import { handleError, ok } from "./shared";
 import { unwrapOr, unwrapOrElse, unwrapOrThrow } from "./sync";
-import type { Options, ResultAsync, ResultAsyncFn } from "./types";
+import type { ResultAsync, ResultAsyncFn, ResultOptions } from "./types";
 
 /**
  * Safely awaits a promise, catching any errors.
@@ -24,7 +24,7 @@ import type { Options, ResultAsync, ResultAsyncFn } from "./types";
  */
 export async function resultFromPromise<T, E = Error>(
   promise: Promise<T>,
-  options?: Options<E>,
+  options?: ResultOptions<E>,
 ): ResultAsync<T, E> {
   try {
     return ok(await promise);
@@ -58,7 +58,7 @@ export function fromAsyncThrowable<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   F extends (...args: any[]) => Promise<any>,
   E = Error,
->(fn: F, options?: Options<E>): ResultAsyncFn<F, E> {
+>(fn: F, options?: ResultOptions<E>): ResultAsyncFn<F, E> {
   return async (...args) => {
     return await resultFromPromise(fn(...args), options);
   };

@@ -5,7 +5,13 @@ export {
   unwrapAsyncOrElse,
   unwrapAsyncOrThrow,
 } from "./async";
-export { safe, safeAsync, unsafeUnwrap, unsafeUnwrapAsync } from "./deprecated";
+export {
+  safe,
+  safeAsync,
+  unsafeUnwrap,
+  unsafeUnwrapAsync,
+  type Options,
+} from "./deprecated";
 export { err, ok } from "./shared";
 export {
   fromThrowable,
@@ -15,11 +21,11 @@ export {
   unwrapOrThrow,
 } from "./sync";
 export type {
-  Options,
   Result,
   ResultAsync,
   ResultAsyncFn,
   ResultErr,
   ResultFn,
   ResultOk,
+  ResultOptions,
 } from "./types";

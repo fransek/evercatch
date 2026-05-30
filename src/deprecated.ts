@@ -1,5 +1,6 @@
 import { resultFromPromise, unwrapAsyncOrThrow } from "./async";
 import { resultFrom, unwrapOrThrow } from "./sync";
+import { ResultOptions } from "./types";
 
 /**
  * @deprecated Use `resultFrom` instead.
@@ -20,3 +21,8 @@ export const unsafeUnwrap = unwrapOrThrow;
  * @deprecated Use `unwrapAsyncOrThrow` instead.
  */
 export const unsafeUnwrapAsync = unwrapAsyncOrThrow;
+
+/**
+ * @deprecated Use `ResultOptions` instead.
+ */
+export type Options<E = Error> = ResultOptions<E>;
