@@ -1,4 +1,4 @@
-import { resultFromPromise, unwrapAsyncOrThrow } from "./async";
+import { fromPromise, unwrapAsyncOrThrow } from "./async";
 import { resultFrom, unwrapOrThrow } from "./sync";
 import { ResultOptions } from "./types";
 
@@ -10,7 +10,7 @@ export const safe = resultFrom;
 /**
  * @deprecated Use `resultFromPromise` instead.
  */
-export const safeAsync = resultFromPromise;
+export const safeAsync = fromPromise;
 
 /**
  * @deprecated Use `unwrapOrThrow` instead.

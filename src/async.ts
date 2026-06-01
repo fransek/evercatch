@@ -12,7 +12,7 @@ import type { ResultAsync, ResultAsyncFn, ResultOptions } from "./types";
  * @returns A Promise of a Result containing either the resolved value or the caught error.
  * @example
  * ```typescript
- * const [error, data] = await resultFromPromise(
+ * const [error, data] = await fromPromise(
  *   fetch("https://api.example.com/data").then((res) => res.json()),
  * );
  * if (error) {
@@ -22,7 +22,7 @@ import type { ResultAsync, ResultAsyncFn, ResultOptions } from "./types";
  * }
  * ```
  */
-export async function resultFromPromise<T, E = Error>(
+export async function fromPromise<T, E = Error>(
   promise: Promise<T>,
   options?: ResultOptions<E>,
 ): ResultAsync<T, E> {
@@ -60,7 +60,7 @@ export function fromAsyncThrowable<
   E = Error,
 >(fn: F, options?: ResultOptions<E>): ResultAsyncFn<F, E> {
   return async (...args) => {
-    return await resultFromPromise(fn(...args), options);
+    return await fromPromise(fn(...args), options);
   };
 }
 

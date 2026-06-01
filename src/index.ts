@@ -1,6 +1,6 @@
 export {
   fromAsyncThrowable,
-  resultFromPromise,
+  fromPromise,
   unwrapAsyncOr,
   unwrapAsyncOrElse,
   unwrapAsyncOrThrow,
