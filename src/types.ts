@@ -43,22 +43,3 @@ export type ResultFn<F extends (...args: any[]) => any, E> = (
 export type ResultAsyncFn<F extends (...args: any[]) => Promise<any>, E> = (
   ...args: Parameters<F>
 ) => ResultAsync<Awaited<ReturnType<F>>, E>;
-
-/**
- * Options for error handling.
- * @template E The type of the error.
- */
-export type ResultOptions<E = Error> = {
-  /** Function to transform the caught error. */
-  mapErr?: (err: unknown) => E;
-  /** Callback to handle the error. */
-  tapErr?: (err: E) => void;
-  /**
-   * @deprecated Use `mapErr` instead.
-   */
-  transformError?: (err: unknown) => E;
-  /**
-   * @deprecated Use `tapErr` instead.
-   */
-  onError?: (err: E) => void;
-};

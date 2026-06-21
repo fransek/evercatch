@@ -24,50 +24,13 @@ describe("async", () => {
       ).resolves.toEqual([expect.any(Error), null]);
     });
 
-    it("should use mapErr option", async () => {
+    it("should use mapErr", async () => {
       const mapErr = vi.fn((value: unknown) => new Error(String(value)));
 
-      const result = await fromPromise(Promise.reject("original"), {
-        mapErr,
-      });
+      const result = await fromPromise(Promise.reject("original"), mapErr);
 
       expect(result).toEqual([expect.any(Error), null]);
       expect(mapErr).toHaveBeenCalledWith("original");
-    });
-
-    it("should support deprecated transformError option", async () => {
-      const transformError = vi.fn(
-        (value: unknown) => new Error(String(value)),
-      );
-
-      const result = await fromPromise(Promise.reject("original"), {
-        transformError,
-      });
-
-      expect(result).toEqual([expect.any(Error), null]);
-      expect(transformError).toHaveBeenCalledWith("original");
-    });
-
-    it("should call tapErr callback", async () => {
-      const tapErr = vi.fn();
-
-      const result = await fromPromise(Promise.reject(new Error("test")), {
-        tapErr,
-      });
-
-      expect(tapErr).toHaveBeenCalledWith(expect.any(Error));
-      expect(result).toEqual([expect.any(Error), null]);
-    });
-
-    it("should support deprecated onError callback", async () => {
-      const onError = vi.fn();
-
-      const result = await fromPromise(Promise.reject(new Error("test")), {
-        onError,
-      });
-
-      expect(onError).toHaveBeenCalledWith(expect.any(Error));
-      expect(result).toEqual([expect.any(Error), null]);
     });
   });
 
@@ -85,17 +48,14 @@ describe("async", () => {
       await expect(wrapped()).resolves.toEqual([expect.any(Error), null]);
     });
 
-    it("should pass options to resultFromPromise", async () => {
-      const tapErr = vi.fn();
-      const wrapped = fromAsyncThrowable(
-        async () => {
-          throw new Error("test");
-        },
-        { tapErr },
-      );
+    it("should pass mapErr to fromPromise", async () => {
+      const mapErr = vi.fn((value: unknown) => new Error(String(value)));
+      const wrapped = fromAsyncThrowable(async () => {
+        throw "test";
+      }, mapErr);
 
       await expect(wrapped()).resolves.toEqual([expect.any(Error), null]);
-      expect(tapErr).toHaveBeenCalledWith(expect.any(Error));
+      expect(mapErr).toHaveBeenCalledWith("test");
     });
   });
 

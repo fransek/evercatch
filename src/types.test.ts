@@ -7,7 +7,6 @@ import type {
   ResultErr,
   ResultFn,
   ResultOk,
-  ResultOptions,
 } from "./types";
 
 describe("types", () => {
@@ -39,20 +38,5 @@ describe("types", () => {
     expect(resultFn(42)).toEqual([null, "42"]);
     await expect(resultAsyncFn(42)).resolves.toEqual([null, "42"]);
     await expect(asyncResult).resolves.toEqual([null, "hello"]);
-  });
-
-  it("should model result options", () => {
-    const options: ResultOptions<Error> = {
-      mapErr: (error) => new Error(String(error)),
-      tapErr: () => undefined,
-      onError: () => undefined,
-      transformError: (error) => new Error(String(error)),
-    };
-
-    const error = options.mapErr?.("boom");
-    options.tapErr?.(error as Error);
-    options.onError?.(error as Error);
-
-    expect(error).toBeInstanceOf(Error);
   });
 });

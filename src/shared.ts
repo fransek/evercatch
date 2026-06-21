@@ -1,4 +1,4 @@
-import type { ResultErr, ResultOk, ResultOptions } from "./types";
+import type { ResultErr, ResultOk } from "./types";
 
 /**
  * Creates a successful result with the given value.
@@ -38,24 +38,8 @@ export function err<E = Error>(error?: E): ResultErr<E> {
   return [error ?? (new Error() as E), null] as const;
 }
 
-function processError<E = Error>(
-  error: unknown,
-  mapErr?: (err: unknown) => E,
-): E {
-  if (mapErr) {
-    return mapErr(error);
-  }
-  if (error instanceof Error) {
-    return error as E;
-  }
-  return new Error(undefined, { cause: error }) as E;
-}
-
-export function handleError<E = Error>(
-  error: unknown,
-  { tapErr, mapErr, onError, transformError }: ResultOptions<E> = {},
-): ResultErr<E> {
-  const mappedErr = processError(error, mapErr ?? transformError);
-  (tapErr ?? onError)?.(mappedErr);
-  return err(mappedErr);
+export function defaultErrorMapper<E = Error>(error: unknown): E {
+  return (
+    error instanceof Error ? error : new Error(undefined, { cause: error })
+  ) as E;
 }

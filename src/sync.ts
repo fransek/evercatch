@@ -1,5 +1,5 @@
-import { handleError } from "./shared";
-import type { Result, ResultFn, ResultOptions } from "./types";
+import { defaultErrorMapper, err, ok } from "./shared";
+import type { Result, ResultFn } from "./types";
 
 /**
  * Safely executes a function, catching any errors.
@@ -7,7 +7,7 @@ import type { Result, ResultFn, ResultOptions } from "./types";
  * @template T The return type of the function.
  * @template E The type of the error.
  * @param fn The function to execute.
- * @param options Options for error handling.
+ * @param mapErr A function to map errors to a specific type.
  * @returns A Result containing either the function's return value or the caught error.
  * @example
  * ```typescript
@@ -21,12 +21,12 @@ import type { Result, ResultFn, ResultOptions } from "./types";
  */
 export function resultFrom<T, E = Error>(
   fn: () => T,
-  options?: ResultOptions<E>,
+  mapErr: (err: unknown) => E = defaultErrorMapper,
 ): Result<T, E> {
   try {
-    return [null, fn()] as const;
+    return ok(fn());
   } catch (error) {
-    return handleError(error, options);
+    return err(mapErr(error));
   }
 }
 
@@ -36,7 +36,7 @@ export function resultFrom<T, E = Error>(
  * @template F The function type.
  * @template E The type of the error.
  * @param fn The function to wrap.
- * @param options Options for error handling.
+ * @param mapErr A function to map errors to a specific type.
  * @returns A function that returns a Result.
  * @example
  * ```typescript
@@ -53,10 +53,10 @@ export function resultFrom<T, E = Error>(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function fromThrowable<F extends (...args: any[]) => any, E = Error>(
   fn: F,
-  options?: ResultOptions<E>,
+  mapErr: (err: unknown) => E = defaultErrorMapper,
 ): ResultFn<F, E> {
   return (...args) => {
-    return resultFrom(() => fn(...args), options);
+    return resultFrom(() => fn(...args), mapErr);
   };
 }
 

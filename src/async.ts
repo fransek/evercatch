@@ -1,6 +1,6 @@
-import { handleError, ok } from "./shared";
+import { defaultErrorMapper, err, ok } from "./shared";
 import { unwrapOr, unwrapOrElse, unwrapOrThrow } from "./sync";
-import type { ResultAsync, ResultAsyncFn, ResultOptions } from "./types";
+import type { ResultAsync, ResultAsyncFn } from "./types";
 
 /**
  * Safely awaits a promise, catching any errors.
@@ -8,7 +8,7 @@ import type { ResultAsync, ResultAsyncFn, ResultOptions } from "./types";
  * @template T The resolved type of the promise.
  * @template E The type of the error.
  * @param promise The promise to await.
- * @param options Options for error handling.
+ * @param mapErr A function to map errors to a specific type.
  * @returns A Promise of a Result containing either the resolved value or the caught error.
  * @example
  * ```typescript
@@ -24,12 +24,12 @@ import type { ResultAsync, ResultAsyncFn, ResultOptions } from "./types";
  */
 export async function fromPromise<T, E = Error>(
   promise: Promise<T>,
-  options?: ResultOptions<E>,
+  mapErr: (err: unknown) => E = defaultErrorMapper,
 ): ResultAsync<T, E> {
   try {
     return ok(await promise);
   } catch (error) {
-    return handleError(error, options);
+    return err(mapErr(error));
   }
 }
 
@@ -39,7 +39,7 @@ export async function fromPromise<T, E = Error>(
  * @template F The async function type.
  * @template E The type of the error.
  * @param fn The async function to wrap.
- * @param options Options for error handling.
+ * @param mapErr A function to map errors to a specific type.
  * @returns An async function that returns a ResultAsync.
  * @example
  * ```typescript
@@ -58,9 +58,12 @@ export function fromAsyncThrowable<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   F extends (...args: any[]) => Promise<any>,
   E = Error,
->(fn: F, options?: ResultOptions<E>): ResultAsyncFn<F, E> {
+>(
+  fn: F,
+  mapErr: (err: unknown) => E = defaultErrorMapper,
+): ResultAsyncFn<F, E> {
   return async (...args) => {
-    return await fromPromise(fn(...args), options);
+    return await fromPromise(fn(...args), mapErr);
   };
 }
 
