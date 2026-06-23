@@ -4,7 +4,7 @@
 [![Downloads](https://img.shields.io/npm/dm/evercatch.svg)](https://npmjs.com/package/evercatch)
 [![Minzipped size](https://img.shields.io/bundlephobia/minzip/evercatch)](https://bundlephobia.com/package/evercatch)
 
-No more uncaught errors!
+No more try/catch blocks. Evercatch provides a simple API for handling errors in a functional way, using result tuples.
 
 ```bash
 npm install evercatch
@@ -15,28 +15,71 @@ pnpm add evercatch
 ```
 
 ```typescript
-import { auth } from "auth";
-import { err, ok, safeAsync } from "evercatch";
+const [error, value] = ok(42);
+const [error, value] = err(new Error("Something went wrong"));
+```
 
-async function fetchUserData() {
-  const [authError, user] = await safeAsync(auth());
-  if (authError) {
-    return err(authError);
+## Basic usage
+
+```typescript
+function parseNumber(str: string): Result<number, Error> {
+  const num = Number(str);
+  if (Number.isNaN(num)) {
+    return err(new Error(`"${str}" is not a number`));
   }
-  const response = await fetch(`https://api.example.com/user/${user.id}`);
-  if (!response.ok) {
-    return err(new Error("Failed to fetch user data"));
-  }
-  const data = await response.json();
-  return ok(data);
+  return ok(num);
 }
 
-const [error, data] = await fetchUserData();
+const [error, value] = parseNumber("42");
+```
+
+## Advanced usage
+
+```typescript
+import { writeFileSync } from "node:fs";
+import { err, fromPromise, fromThrowable, ok } from "evercatch";
+import { db } from "./db";
+
+type AppError =
+  | { code: "DB"; message: string }
+  | { code: "FILE"; message: string };
+
+const writeSnapshot = fromThrowable(
+  (path: string, contents: string) => writeFileSync(path, contents, "utf8"),
+  () => ({ code: "FILE", message: "Could not write the report to disk" }),
+);
+
+async function exportUserReport(userId: string) {
+  const [dbError, user] = await fromPromise(
+    db.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, createdAt: true },
+    }),
+    () => ({
+      code: "DB",
+      message: "Could not load the user from the database",
+    }),
+  );
+
+  if (dbError) return err(dbError);
+  if (!user)
+    return err({ code: "DB", message: `User ${userId} was not found` });
+
+  const reportPath = `./tmp/user-${userId}.json`;
+  const report = JSON.stringify(user, null, 2);
+
+  const [fileError] = writeSnapshot(reportPath, report);
+  if (fileError) return err(fileError);
+
+  return ok(reportPath);
+}
+
+const [error, filePath] = await exportUserReport("42");
 
 if (error) {
-  console.error(error.message);
+  console.error(error.code, error.message);
 } else {
-  console.log(data);
+  console.log(`User report written to ${filePath}`);
 }
 ```
 

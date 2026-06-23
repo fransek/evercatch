@@ -40,6 +40,8 @@
     "doc:watch": "typedoc --watch"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
+    "@eslint/js": "^10.0.1",
     "@rollup/plugin-typescript": "^12.1.2",
     "@types/node": "^22.10.6",
     "@typescript-eslint/eslint-plugin": "^8.20.0",

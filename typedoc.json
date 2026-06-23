@@ -5,6 +5,7 @@
   "navigation": {
     "includeGroups": true
   },
+  "exclude": ["./src/deprecated.ts"],
   "customCss": "./docs.css",
   "name": "Evercatch",
   "navigationLinks": {
