@@ -137,4 +137,47 @@ if (error) {
 }
 ```
 
+## Namespaces
+
+Every function is also available on an object named after the type it works
+with, so a single import covers the whole API. The members are the same
+functions as the standalone exports, just under shorter names:
+
+| Namespace       | Member                      | Standalone export    |
+| --------------- | --------------------------- | -------------------- |
+| `Result`        | `Result.ok`                 | `ok`                 |
+| `Result`        | `Result.err`                | `err`                |
+| `Result`        | `Result.from`               | `resultFrom`         |
+| `Result`        | `Result.unwrapOrThrow`      | `unwrapOrThrow`      |
+| `Result`        | `Result.unwrapOr`           | `unwrapOr`           |
+| `Result`        | `Result.unwrapOrElse`       | `unwrapOrElse`       |
+| `ResultFn`      | `ResultFn.from`             | `fromThrowable`      |
+| `ResultAsync`   | `ResultAsync.from`          | `fromPromise`        |
+| `ResultAsync`   | `ResultAsync.unwrapOrThrow` | `unwrapAsyncOrThrow` |
+| `ResultAsync`   | `ResultAsync.unwrapOr`      | `unwrapAsyncOr`      |
+| `ResultAsync`   | `ResultAsync.unwrapOrElse`  | `unwrapAsyncOrElse`  |
+| `ResultAsyncFn` | `ResultAsyncFn.from`        | `fromAsyncThrowable` |
+
+Each namespace shares its name with the type it groups, so the same import
+works as a value and as a type:
+
+```typescript
+import { Result, ResultAsync } from "evercatch";
+
+function parseNumber(str: string): Result<number, Error> {
+  const num = Number(str);
+  if (Number.isNaN(num)) {
+    return Result.err(new Error(`"${str}" is not a number`));
+  }
+  return Result.ok(num);
+}
+
+const [error, data] = await ResultAsync.from(
+  fetch("https://api.example.com/data").then((res) => res.json()),
+);
+```
+
+Importing a namespace pulls in all of its members, so import the functions
+directly when bundle size matters.
+
 [Documentation](https://fransek.github.io/evercatch/)

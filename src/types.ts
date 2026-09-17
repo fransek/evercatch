@@ -1,3 +1,19 @@
+import {
+  fromAsyncThrowable,
+  fromPromise,
+  unwrapAsyncOr,
+  unwrapAsyncOrElse,
+  unwrapAsyncOrThrow,
+} from "./async";
+import { err, ok } from "./shared";
+import {
+  fromThrowable,
+  resultFrom,
+  unwrapOr,
+  unwrapOrElse,
+  unwrapOrThrow,
+} from "./sync";
+
 /**
  * Constraint that rejects error types that could be nullish.
  *
@@ -73,3 +89,123 @@ export type ResultAsyncFn<
   F extends (...args: any[]) => Promise<any>,
   E extends NotNullish<E>,
 > = (...args: Parameters<F>) => ResultAsync<Awaited<ReturnType<F>>, E>;
+
+// The namespaces below group the exported functions under the type they work
+// with. Each one shares its name with that type, which a value can only do in
+// the module where the type is declared, so they live here next to the types.
+
+/**
+ * The functions that create and unwrap a {@link Result}, grouped under the
+ * type they work with.
+ *
+ * Every member is also exported on its own, so this is only a matter of
+ * preference. The grouped names are shorter, since the type they belong to
+ * says what they operate on.
+ * @group Namespaces
+ * @namespace
+ * @example
+ * ```typescript
+ * import { Result } from "evercatch";
+ *
+ * const [error, data] = Result.from(() => JSON.parse('{"foo": "bar"}'));
+ * if (error) {
+ *   console.error(error.message);
+ * } else {
+ *   console.log(data);
+ * }
+ * ```
+ */
+export const Result = {
+  /** See {@link ok}. */
+  ok,
+  /** See {@link err}. */
+  err,
+  /** See {@link resultFrom}. */
+  from: resultFrom,
+  /** See {@link unwrapOrThrow}. */
+  unwrapOrThrow,
+  /** See {@link unwrapOr}. */
+  unwrapOr,
+  /** See {@link unwrapOrElse}. */
+  unwrapOrElse,
+} as const;
+
+/**
+ * The functions that create a {@link ResultFn}, grouped under the type they
+ * return.
+ *
+ * Every member is also exported on its own, so this is only a matter of
+ * preference. The grouped names are shorter, since the type they belong to
+ * says what they operate on.
+ * @group Namespaces
+ * @namespace
+ * @example
+ * ```typescript
+ * import { ResultFn } from "evercatch";
+ *
+ * const safeParse = ResultFn.from(JSON.parse);
+ *
+ * const [error, data] = safeParse('{"foo": "bar"}');
+ * ```
+ */
+export const ResultFn = {
+  /** See {@link fromThrowable}. */
+  from: fromThrowable,
+} as const;
+
+/**
+ * The functions that create and unwrap a {@link ResultAsync}, grouped under
+ * the type they work with.
+ *
+ * Every member is also exported on its own, so this is only a matter of
+ * preference. The grouped names are shorter, since the type they belong to
+ * says what they operate on.
+ * @group Namespaces
+ * @namespace
+ * @example
+ * ```typescript
+ * import { ResultAsync } from "evercatch";
+ *
+ * const [error, data] = await ResultAsync.from(
+ *   fetch("https://api.example.com/data").then((res) => res.json()),
+ * );
+ * if (error) {
+ *   console.error(error.message);
+ * } else {
+ *   console.log(data);
+ * }
+ * ```
+ */
+export const ResultAsync = {
+  /** See {@link fromPromise}. */
+  from: fromPromise,
+  /** See {@link unwrapAsyncOrThrow}. */
+  unwrapOrThrow: unwrapAsyncOrThrow,
+  /** See {@link unwrapAsyncOr}. */
+  unwrapOr: unwrapAsyncOr,
+  /** See {@link unwrapAsyncOrElse}. */
+  unwrapOrElse: unwrapAsyncOrElse,
+} as const;
+
+/**
+ * The functions that create a {@link ResultAsyncFn}, grouped under the type
+ * they return.
+ *
+ * Every member is also exported on its own, so this is only a matter of
+ * preference. The grouped names are shorter, since the type they belong to
+ * says what they operate on.
+ * @group Namespaces
+ * @namespace
+ * @example
+ * ```typescript
+ * import { ResultAsyncFn } from "evercatch";
+ *
+ * const safeFetch = ResultAsyncFn.from(fetch);
+ *
+ * const [error, response] = await safeFetch("https://api.example.com/data");
+ * ```
+ */
+export const ResultAsyncFn = {
+  /** See {@link fromAsyncThrowable}. */
+  from: fromAsyncThrowable,
+} as const;
