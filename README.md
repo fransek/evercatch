@@ -4,7 +4,12 @@
 [![Downloads](https://img.shields.io/npm/dm/evercatch.svg)](https://npmjs.com/package/evercatch)
 [![Minzipped size](https://img.shields.io/bundlephobia/minzip/evercatch)](https://bundlephobia.com/package/evercatch)
 
-No more try/catch blocks. Evercatch provides a simple API for handling errors in a functional way, using result tuples.
+No more uncaught errors!
+
+Evercatch is a tiny, dependency-free TypeScript library that turns thrown errors
+into values. Errors become part of a function's return type, so the compiler
+tells you where they are and refuses to let you read a value you haven't checked
+for yet.
 
 ```bash
 npm install evercatch
@@ -14,170 +19,160 @@ yarn add evercatch
 pnpm add evercatch
 ```
 
+## The result tuple
+
+Everything is built on one type: a readonly tuple of `[error, value]`.
+
 ```typescript
-const [error, value] = ok(42);
-const [error, value] = err(new Error("Something went wrong"));
+type Result<T, E> = readonly [null, T] | readonly [E, null];
 ```
 
-## Basic usage
+Destructure it, check the error, and TypeScript narrows the value for you:
 
 ```typescript
-function parseNumber(str: string): Result<number, Error> {
-  const num = Number(str);
-  if (Number.isNaN(num)) {
-    return err(new Error(`"${str}" is not a number`));
+import { err, ok, type Result } from "evercatch";
+
+function divide(a: number, b: number): Result<number, Error> {
+  if (b === 0) {
+    return err(new Error("Division by zero"));
   }
-  return ok(num);
+  return ok(a / b);
 }
 
-const [error, value] = parseNumber("42");
-```
-
-## Errors can't be nullish
-
-`null` in the error slot means "this result is ok, there is no error", so an
-error can never be `null`. `undefined` is rejected along with it, since it means
-"no error was passed". Both are rejected at compile time, and fall back to a new
-`Error` at runtime:
-
-```typescript
-err(new Error("Oops")); // [Error: Oops, null]
-err(); // [Error, null]
-
-err(null); // Type error: null means "no error"
-err(undefined); // Type error: use err() instead
-
-declare const maybeError: Error | null;
-err(maybeError); // Type error: the error could be null
-```
-
-Any other error is passed through as is, falsy or not. Branching on a falsy
-error is up to you:
-
-```typescript
-err("Oops"); // ["Oops", null]
-err(404); // [404, null]
-err(0); // [0, null] — beware: if (error) will not catch this
-```
-
-Values are passed through untouched too, so a falsy value is a perfectly good
-success:
-
-```typescript
-ok(); // [null, undefined]
-ok(0); // [null, 0]
-ok(null); // [null, null]
-```
-
-An error caught in a `catch` block can be passed on as is, since `unknown` is
-allowed. `any` is not — widen it to `unknown` instead.
-
-The same constraint applies to the types, so a result can never carry a nullish
-error type. Use the exported `NotNullish` constraint when writing your own
-generic helpers:
-
-```typescript
-type Invalid = Result<number, Error | null>; // Type error: the error could be null
-
-function logError<E extends NotNullish<E>>(result: Result<unknown, E>) {
-  const [error] = result;
-  if (error) {
-    console.error(error);
-  }
-}
-```
-
-## Advanced usage
-
-```typescript
-import { writeFileSync } from "node:fs";
-import { err, fromPromise, fromThrowable, ok } from "evercatch";
-import { db } from "./db";
-
-type AppError =
-  | { code: "DB"; message: string }
-  | { code: "FILE"; message: string };
-
-const writeSnapshot = fromThrowable(
-  (path: string, contents: string) => writeFileSync(path, contents, "utf8"),
-  () => ({ code: "FILE", message: "Could not write the report to disk" }),
-);
-
-async function exportUserReport(userId: string) {
-  const [dbError, user] = await fromPromise(
-    db.user.findUnique({
-      where: { id: userId },
-      select: { id: true, email: true, createdAt: true },
-    }),
-    () => ({
-      code: "DB",
-      message: "Could not load the user from the database",
-    }),
-  );
-
-  if (dbError) return err(dbError);
-  if (!user)
-    return err({ code: "DB", message: `User ${userId} was not found` });
-
-  const reportPath = `./tmp/user-${userId}.json`;
-  const report = JSON.stringify(user, null, 2);
-
-  const [fileError] = writeSnapshot(reportPath, report);
-  if (fileError) return err(fileError);
-
-  return ok(reportPath);
-}
-
-const [error, filePath] = await exportUserReport("42");
+const [error, value] = divide(10, 2);
 
 if (error) {
-  console.error(error.code, error.message);
+  console.error(error.message);
 } else {
-  console.log(`User report written to ${filePath}`);
+  console.log(value); // number — narrowed, not number | null
+}
+```
+
+`null` in the error slot means "this result is ok", so an error can never be
+nullish. Every error type in the library is constrained to reject `null` and
+`undefined` at compile time.
+
+## Catching what throws
+
+Wrap a call that might throw and get a result back instead.
+
+```typescript
+import { fromPromise, resultFrom } from "evercatch";
+
+const [parseError, config] = resultFrom(() => JSON.parse(raw));
+
+const [fetchError, response] = await fromPromise(
+  fetch("https://api.example.com/data"),
+);
+```
+
+Or wrap the function once and reuse the safe version:
+
+```typescript
+import { fromAsyncThrowable, fromThrowable } from "evercatch";
+
+const safeParse = fromThrowable(JSON.parse);
+const safeFetch = fromAsyncThrowable(fetch);
+
+const [error, data] = safeParse(raw);
+const [fetchError, response] = await safeFetch("https://api.example.com/data");
+```
+
+Anything thrown that isn't an `Error` is wrapped in one, with the original value
+kept as `cause`.
+
+## Custom error types
+
+Every catching function takes an optional `mapErr` to turn the caught value into
+an error type of your choosing — a string union, a tagged object, your own error
+class. Whatever you return becomes the error type of the result.
+
+```typescript
+import { fromPromise } from "evercatch";
+
+type FetchError = "NETWORK_ERROR" | "TIMEOUT";
+
+const [error, response] = await fromPromise(
+  fetch("https://api.example.com/data"),
+  (e): FetchError => (e instanceof DOMException ? "TIMEOUT" : "NETWORK_ERROR"),
+);
+
+if (error === "TIMEOUT") {
+  // ...
+}
+```
+
+## Unwrapping
+
+When you'd rather not handle the error at the call site, unwrap the result with
+a fallback — or throw after all.
+
+```typescript
+import { unwrapOr, unwrapOrElse, unwrapOrThrow } from "evercatch";
+
+unwrapOr(divide(10, 0), 0); // 0
+unwrapOrElse(divide(10, 0), (error) => error.message.length); // computed
+unwrapOrThrow(divide(10, 0)); // throws the error
+```
+
+The async variants take a `Promise` of a result and return a promise:
+`unwrapAsyncOr`, `unwrapAsyncOrElse` and `unwrapAsyncOrThrow`.
+
+## Composing
+
+Results compose by returning early. Errors travel upward as values, so a
+function that can fail has a signature that says so.
+
+```typescript
+import { err, fromPromise, ok, type ResultAsync } from "evercatch";
+import { auth } from "./auth";
+
+async function fetchUserData(): ResultAsync<UserData, Error> {
+  const [authError, user] = await fromPromise(auth());
+  if (authError) {
+    return err(authError);
+  }
+
+  const [fetchError, response] = await fromPromise(
+    fetch(`https://api.example.com/user/${user.id}`),
+  );
+  if (fetchError) {
+    return err(fetchError);
+  }
+  if (!response.ok) {
+    return err(new Error("Failed to fetch user data"));
+  }
+
+  return await fromPromise(response.json());
 }
 ```
 
 ## Namespaces
 
-Every function is also available on an object named after the type it works
-with, so a single import covers the whole API. The members are the same
-functions as the standalone exports, just under shorter names:
-
-| Namespace       | Member                      | Standalone export    |
-| --------------- | --------------------------- | -------------------- |
-| `Result`        | `Result.ok`                 | `ok`                 |
-| `Result`        | `Result.err`                | `err`                |
-| `Result`        | `Result.from`               | `resultFrom`         |
-| `Result`        | `Result.unwrapOrThrow`      | `unwrapOrThrow`      |
-| `Result`        | `Result.unwrapOr`           | `unwrapOr`           |
-| `Result`        | `Result.unwrapOrElse`       | `unwrapOrElse`       |
-| `ResultFn`      | `ResultFn.from`             | `fromThrowable`      |
-| `ResultAsync`   | `ResultAsync.from`          | `fromPromise`        |
-| `ResultAsync`   | `ResultAsync.unwrapOrThrow` | `unwrapAsyncOrThrow` |
-| `ResultAsync`   | `ResultAsync.unwrapOr`      | `unwrapAsyncOr`      |
-| `ResultAsync`   | `ResultAsync.unwrapOrElse`  | `unwrapAsyncOrElse`  |
-| `ResultAsyncFn` | `ResultAsyncFn.from`        | `fromAsyncThrowable` |
-
-Each namespace shares its name with the type it groups, so the same import
-works as a value and as a type:
+The same functions are also grouped under the type they work with, which makes
+for shorter names at the call site. This is purely a matter of preference — the
+namespace members and the standalone exports are the same functions.
 
 ```typescript
-import { Result, ResultAsync } from "evercatch";
+import { Result, ResultAsync, ResultAsyncFn, ResultFn } from "evercatch";
 
-function parseNumber(str: string): Result<number, Error> {
-  const num = Number(str);
-  if (Number.isNaN(num)) {
-    return Result.err(new Error(`"${str}" is not a number`));
-  }
-  return Result.ok(num);
-}
+Result.ok(42);
+Result.from(() => JSON.parse(raw));
+Result.unwrapOr(someResult, 0);
 
-const [error, data] = await ResultAsync.from(
-  fetch("https://api.example.com/data").then((res) => res.json()),
-);
+await ResultAsync.from(fetch(url));
+
+const safeParse = ResultFn.from(JSON.parse);
+const safeFetch = ResultAsyncFn.from(fetch);
 ```
 
-Importing a namespace pulls in all of its members, so import the functions
-directly when bundle size matters.
+Note that `Result`, `ResultAsync`, `ResultFn` and `ResultAsyncFn` are each both a
+type and a value, so a single import gives you both.
 
-[Documentation](https://fransek.github.io/evercatch/)
+## Documentation
+
+Full API reference: [fransek.github.io/evercatch](https://fransek.github.io/evercatch/)
+
+## License
+
+MIT
