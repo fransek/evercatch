@@ -14,10 +14,12 @@ export {
   unwrapOrThrow,
 } from "./sync";
 export type {
+  Falsy,
   Result,
   ResultAsync,
   ResultAsyncFn,
   ResultErr,
   ResultFn,
   ResultOk,
+  Truthy,
 } from "./types";

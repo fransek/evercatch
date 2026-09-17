@@ -33,6 +33,46 @@ function parseNumber(str: string): Result<number, Error> {
 const [error, value] = parseNumber("42");
 ```
 
+## Errors have to be truthy
+
+The error is what you branch on, so it can never be falsy. `err` rejects falsy
+errors at compile time, and falls back to a new `Error` at runtime:
+
+```typescript
+err(new Error("Oops")); // [Error: Oops, null]
+err(); // [Error, null]
+
+err(null); // Type error: null is falsy
+err(0); // Type error: 0 is falsy
+
+declare const maybeError: Error | null;
+err(maybeError); // Type error: the error could be null
+```
+
+Values, on the other hand, are passed through untouched, so a falsy value is
+still a perfectly good success:
+
+```typescript
+ok(); // [null, undefined]
+ok(0); // [null, 0]
+ok(null); // [null, null]
+```
+
+The same constraint applies to the types, so a result can never carry a falsy
+error type. Use the exported `Truthy` constraint when writing your own generic
+helpers:
+
+```typescript
+type Invalid = Result<number, Error | null>; // Type error: the error could be null
+
+function logError<E extends Truthy<E>>(result: Result<unknown, E>) {
+  const [error] = result;
+  if (error) {
+    console.error(error);
+  }
+}
+```
+
 ## Advanced usage
 
 ```typescript
