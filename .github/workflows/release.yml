@@ -5,40 +5,56 @@ on:
     branches:
       - main
 
-permissions:
-  contents: write
-  issues: write
-  pull-requests: write
-
 jobs:
   release-please:
+    name: Create release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
     steps:
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10
-
       - uses: googleapis/release-please-action@v4
         id: release
         with:
           release-type: node
 
-      - uses: actions/checkout@v4
-        if: ${{ steps.release.outputs.release_created }}
+  publish:
+    name: Stage npm release
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Required to mint the OIDC token used for npm trusted publishing.
+      # https://docs.npmjs.com/trusted-publishers
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: lts/*
           registry-url: "https://registry.npmjs.org"
-        if: ${{ steps.release.outputs.release_created }}
 
-      - run: pnpm install --frozen-lockfile
-        if: ${{ steps.release.outputs.release_created }}
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12
 
-      - run: pnpm build
-        if: ${{ steps.release.outputs.release_created }}
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - run: pnpm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        if: ${{ steps.release.outputs.release_created }}
+      - name: Build
+        run: pnpm build
+
+      # Uploads the tarball to the npm stage queue instead of publishing it
+      # directly. A maintainer has to approve it with 2FA, either on npmjs.com
+      # or with `npm stage approve <stage-id>`, before it becomes installable.
+      # https://docs.npmjs.com/staged-publishing
+      - name: Stage publish
+        run: pnpm stage publish
