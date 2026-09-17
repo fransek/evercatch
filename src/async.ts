@@ -1,6 +1,6 @@
 import { defaultErrorMapper, err, ok } from "./shared";
 import { unwrapOr, unwrapOrElse, unwrapOrThrow } from "./sync";
-import type { ResultAsync, ResultAsyncFn, Truthy } from "./types";
+import type { NotNullish, ResultAsync, ResultAsyncFn } from "./types";
 
 /**
  * Safely awaits a promise, catching any errors.
@@ -22,7 +22,7 @@ import type { ResultAsync, ResultAsyncFn, Truthy } from "./types";
  * }
  * ```
  */
-export async function fromPromise<T, E extends Truthy<E> = Error>(
+export async function fromPromise<T, E extends NotNullish<E> = Error>(
   promise: Promise<T>,
   mapErr: (err: unknown) => E = defaultErrorMapper,
 ): ResultAsync<T, E> {
@@ -57,7 +57,7 @@ export async function fromPromise<T, E extends Truthy<E> = Error>(
 export function fromAsyncThrowable<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   F extends (...args: any[]) => Promise<any>,
-  E extends Truthy<E> = Error,
+  E extends NotNullish<E> = Error,
 >(
   fn: F,
   mapErr: (err: unknown) => E = defaultErrorMapper,
@@ -82,7 +82,7 @@ export function fromAsyncThrowable<
  * console.log(value);
  * ```
  */
-export async function unwrapAsyncOrThrow<T, E extends Truthy<E> = Error>(
+export async function unwrapAsyncOrThrow<T, E extends NotNullish<E> = Error>(
   resultAsync: ResultAsync<T, E>,
 ): Promise<T> {
   const result = await resultAsync;
@@ -111,7 +111,7 @@ export async function unwrapAsyncOrThrow<T, E extends Truthy<E> = Error>(
  * console.log(value); // 0
  * ```
  */
-export async function unwrapAsyncOr<T, E extends Truthy<E> = Error>(
+export async function unwrapAsyncOr<T, E extends NotNullish<E> = Error>(
   resultAsync: ResultAsync<T, E>,
   fallback: T,
 ): Promise<T> {
@@ -141,7 +141,7 @@ export async function unwrapAsyncOr<T, E extends Truthy<E> = Error>(
  * console.log(value); // 4
  * ```
  */
-export async function unwrapAsyncOrElse<T, E extends Truthy<E> = Error>(
+export async function unwrapAsyncOrElse<T, E extends NotNullish<E> = Error>(
   resultAsync: ResultAsync<T, E>,
   fallbackFn: (err: E) => T,
 ): Promise<T> {

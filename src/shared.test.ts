@@ -54,31 +54,30 @@ describe("shared", () => {
       expectTypeOf(result).toEqualTypeOf<ResultErr<Error>>();
     });
 
-    it("should reject falsy errors", () => {
-      // @ts-expect-error undefined is not a valid error
-      expect(err(undefined)).toEqual([expect.any(Error), null]);
-      // @ts-expect-error null is not a valid error
+    it("should reject nullish errors", () => {
+      // @ts-expect-error null means "no error"
       expect(err(null)).toEqual([expect.any(Error), null]);
-      // @ts-expect-error 0 is not a valid error
-      expect(err(0)).toEqual([expect.any(Error), null]);
-      // @ts-expect-error "" is not a valid error
-      expect(err("")).toEqual([expect.any(Error), null]);
-      // @ts-expect-error false is not a valid error
-      expect(err(false)).toEqual([expect.any(Error), null]);
-      // @ts-expect-error 0n is not a valid error
-      expect(err(0n)).toEqual([expect.any(Error), null]);
+      // @ts-expect-error undefined means "no error was passed"
+      expect(err(undefined)).toEqual([expect.any(Error), null]);
 
-      const maybeError: Error | null = null;
+      const maybeNull: Error | null = null;
       // @ts-expect-error a possibly null error is not a valid error
-      expect(err(maybeError)).toEqual([expect.any(Error), null]);
+      expect(err(maybeNull)).toEqual([expect.any(Error), null]);
+
+      const maybeUndefined: Error | undefined = undefined;
+      // @ts-expect-error a possibly undefined error is not a valid error
+      expect(err(maybeUndefined)).toEqual([expect.any(Error), null]);
     });
 
-    it("should replace a falsy error with a new Error at runtime", () => {
-      // NaN is falsy but cannot be rejected by the type system
-      expect(err(NaN)).toEqual([expect.any(Error), null]);
+    it("should pass through falsy errors that are not nullish", () => {
+      expect(err(0)).toEqual([0, null]);
+      expect(err("")).toEqual(["", null]);
+      expect(err(false)).toEqual([false, null]);
+      expect(err(0n)).toEqual([0n, null]);
+      expect(err(NaN)[0]).toBeNaN();
     });
 
-    it("should accept truthy errors of any type", () => {
+    it("should accept errors of any type", () => {
       expect(err("boom")).toEqual(["boom", null]);
       expect(err(404)).toEqual([404, null]);
       expect(err({ code: "DB" })).toEqual([{ code: "DB" }, null]);

@@ -1,21 +1,20 @@
 /**
- * The values that are falsy at runtime.
+ * Constraint that rejects error types that could be nullish.
  *
- * `NaN` is also falsy, but it cannot be expressed as a type, so `number` is
- * still considered a valid error type.
- */
-export type Falsy = false | 0 | 0n | "" | null | undefined;
-
-/**
- * Constraint that rejects error types that could be falsy at runtime.
+ * `null` in the error slot means "this result is ok, there is no error", so an
+ * error can never be `null`. `undefined` is rejected along with it, since it
+ * means "no error was passed" everywhere an error is optional.
  *
- * An error has to be truthy to be able to branch off the result, so every
- * error type in this library is constrained with it. Use it when writing your
- * own generic helpers around {@link Result}.
+ * Every error type in this library is constrained with it. Use it when writing
+ * your own generic helpers around {@link Result}.
+ *
+ * `unknown` is allowed, so an error caught in a `catch` block can be passed on
+ * as is. `any` is not, since it resolves to a nullish type here; widen it to
+ * `unknown` instead.
  * @template E The type of the error.
  * @example
  * ```typescript
- * function logError<E extends Truthy<E>>(result: Result<unknown, E>) {
+ * function logError<E extends NotNullish<E>>(result: Result<unknown, E>) {
  *   const [error] = result;
  *   if (error) {
  *     console.error(error);
@@ -23,7 +22,9 @@ export type Falsy = false | 0 | 0n | "" | null | undefined;
  * }
  * ```
  */
-export type Truthy<E> = [Extract<E, Falsy>] extends [never] ? unknown : never;
+export type NotNullish<E> = [Extract<E, null | undefined>] extends [never]
+  ? unknown
+  : never;
 
 /**
  * Represents a successful result containing a value.
@@ -33,42 +34,42 @@ export type ResultOk<T> = readonly [null, T];
 
 /**
  * Represents an error result containing an error.
- * @template E The type of the error. Has to be truthy.
+ * @template E The type of the error. Cannot be nullish.
  */
-export type ResultErr<E extends Truthy<E>> = readonly [E, null];
+export type ResultErr<E extends NotNullish<E>> = readonly [E, null];
 
 /**
  * Represents a result that can be either successful or an error.
  * @template T The type of the value in case of success.
- * @template E The type of the error in case of failure. Has to be truthy.
+ * @template E The type of the error in case of failure. Cannot be nullish.
  */
-export type Result<T, E extends Truthy<E>> = ResultOk<T> | ResultErr<E>;
+export type Result<T, E extends NotNullish<E>> = ResultOk<T> | ResultErr<E>;
 
 /**
  * Represents an asynchronous result that can be either successful or an error.
  * @template T The type of the value in case of success.
- * @template E The type of the error in case of failure. Has to be truthy.
+ * @template E The type of the error in case of failure. Cannot be nullish.
  */
-export type ResultAsync<T, E extends Truthy<E>> = Promise<Result<T, E>>;
+export type ResultAsync<T, E extends NotNullish<E>> = Promise<Result<T, E>>;
 
 /**
  * Represents a function that returns a Result.
  * @template F The function type.
- * @template E The type of the error. Has to be truthy.
+ * @template E The type of the error. Cannot be nullish.
  */
 export type ResultFn<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   F extends (...args: any[]) => any,
-  E extends Truthy<E>,
+  E extends NotNullish<E>,
 > = (...args: Parameters<F>) => Result<ReturnType<F>, E>;
 
 /**
  * Represents an asynchronous function that returns a ResultAsync.
  * @template F The async function type.
- * @template E The type of the error. Has to be truthy.
+ * @template E The type of the error. Cannot be nullish.
  */
 export type ResultAsyncFn<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   F extends (...args: any[]) => Promise<any>,
-  E extends Truthy<E>,
+  E extends NotNullish<E>,
 > = (...args: Parameters<F>) => ResultAsync<Awaited<ReturnType<F>>, E>;

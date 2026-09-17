@@ -1,5 +1,5 @@
 import { defaultErrorMapper, err, ok } from "./shared";
-import type { Result, ResultFn, Truthy } from "./types";
+import type { NotNullish, Result, ResultFn } from "./types";
 
 /**
  * Safely executes a function, catching any errors.
@@ -19,7 +19,7 @@ import type { Result, ResultFn, Truthy } from "./types";
  * }
  * ```
  */
-export function resultFrom<T, E extends Truthy<E> = Error>(
+export function resultFrom<T, E extends NotNullish<E> = Error>(
   fn: () => T,
   mapErr: (err: unknown) => E = defaultErrorMapper,
 ): Result<T, E> {
@@ -53,7 +53,7 @@ export function resultFrom<T, E extends Truthy<E> = Error>(
 export function fromThrowable<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   F extends (...args: any[]) => any,
-  E extends Truthy<E> = Error,
+  E extends NotNullish<E> = Error,
 >(fn: F, mapErr: (err: unknown) => E = defaultErrorMapper): ResultFn<F, E> {
   return (...args) => {
     return resultFrom(() => fn(...args), mapErr);
@@ -75,7 +75,7 @@ export function fromThrowable<
  * console.log(value);
  * ```
  */
-export function unwrapOrThrow<T, E extends Truthy<E> = Error>(
+export function unwrapOrThrow<T, E extends NotNullish<E> = Error>(
   result: Result<T, E>,
 ): T {
   const [error, value] = result;
@@ -104,7 +104,7 @@ export function unwrapOrThrow<T, E extends Truthy<E> = Error>(
  * console.log(value); // 0
  * ```
  */
-export function unwrapOr<T, E extends Truthy<E> = Error>(
+export function unwrapOr<T, E extends NotNullish<E> = Error>(
   result: Result<T, E>,
   fallback: T,
 ): T {
@@ -137,7 +137,7 @@ export function unwrapOr<T, E extends Truthy<E> = Error>(
  * console.log(value); // 4
  * ```
  */
-export function unwrapOrElse<T, E extends Truthy<E> = Error>(
+export function unwrapOrElse<T, E extends NotNullish<E> = Error>(
   result: Result<T, E>,
   fallbackFn: (err: E) => T,
 ): T {

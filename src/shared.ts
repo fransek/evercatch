@@ -1,4 +1,4 @@
-import type { ResultErr, ResultOk, Truthy } from "./types";
+import type { NotNullish, ResultErr, ResultOk } from "./types";
 
 /**
  * Creates a successful result with the given value.
@@ -32,11 +32,13 @@ export function err(): ResultErr<Error>;
 /**
  * Creates an error result with the given error.
  *
- * The error has to be truthy, since a falsy error cannot be branched off of.
- * Falsy arguments are rejected at compile time, and replaced with a new Error
- * at runtime as a last resort. See {@link Truthy}.
+ * The error cannot be nullish, since `null` in the error slot means "this
+ * result is ok". Nullish arguments are rejected at compile time, and replaced
+ * with a new Error at runtime as a last resort. See {@link NotNullish}.
+ *
+ * Any other value is passed through as is, including falsy ones.
  * @group Core
- * @template E The type of the error. Has to be truthy.
+ * @template E The type of the error. Cannot be nullish.
  * @param error The error to wrap in an error result.
  * @returns A ResultErr containing the error.
  * @example
@@ -45,15 +47,19 @@ export function err(): ResultErr<Error>;
  * ```
  * @example
  * ```typescript
- * const [error, value] = err(null); // Type error: null is falsy
+ * const [error, value] = err("Oops"); // ["Oops", null]
+ * ```
+ * @example
+ * ```typescript
+ * const [error, value] = err(null); // Type error: null means "no error"
  * ```
  */
-export function err<const E extends Truthy<E>>(error: E): ResultErr<E>;
-export function err<E extends Truthy<E> = Error>(error?: E): ResultErr<E> {
-  return [error || (new Error() as E), null] as const;
+export function err<E extends NotNullish<E>>(error: E): ResultErr<E>;
+export function err<E extends NotNullish<E> = Error>(error?: E): ResultErr<E> {
+  return [error ?? (new Error() as E), null] as const;
 }
 
-export function defaultErrorMapper<E extends Truthy<E> = Error>(
+export function defaultErrorMapper<E extends NotNullish<E> = Error>(
   error: unknown,
 ): E {
   return (
