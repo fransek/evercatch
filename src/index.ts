@@ -14,6 +14,7 @@ export {
   unwrapOrThrow,
 } from "./sync";
 export type {
+  NotNullish,
   Result,
   ResultAsync,
   ResultAsyncFn,

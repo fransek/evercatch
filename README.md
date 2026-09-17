@@ -33,6 +33,60 @@ function parseNumber(str: string): Result<number, Error> {
 const [error, value] = parseNumber("42");
 ```
 
+## Errors can't be nullish
+
+`null` in the error slot means "this result is ok, there is no error", so an
+error can never be `null`. `undefined` is rejected along with it, since it means
+"no error was passed". Both are rejected at compile time, and fall back to a new
+`Error` at runtime:
+
+```typescript
+err(new Error("Oops")); // [Error: Oops, null]
+err(); // [Error, null]
+
+err(null); // Type error: null means "no error"
+err(undefined); // Type error: use err() instead
+
+declare const maybeError: Error | null;
+err(maybeError); // Type error: the error could be null
+```
+
+Any other error is passed through as is, falsy or not. Branching on a falsy
+error is up to you:
+
+```typescript
+err("Oops"); // ["Oops", null]
+err(404); // [404, null]
+err(0); // [0, null] — beware: if (error) will not catch this
+```
+
+Values are passed through untouched too, so a falsy value is a perfectly good
+success:
+
+```typescript
+ok(); // [null, undefined]
+ok(0); // [null, 0]
+ok(null); // [null, null]
+```
+
+An error caught in a `catch` block can be passed on as is, since `unknown` is
+allowed. `any` is not — widen it to `unknown` instead.
+
+The same constraint applies to the types, so a result can never carry a nullish
+error type. Use the exported `NotNullish` constraint when writing your own
+generic helpers:
+
+```typescript
+type Invalid = Result<number, Error | null>; // Type error: the error could be null
+
+function logError<E extends NotNullish<E>>(result: Result<unknown, E>) {
+  const [error] = result;
+  if (error) {
+    console.error(error);
+  }
+}
+```
+
 ## Advanced usage
 
 ```typescript
