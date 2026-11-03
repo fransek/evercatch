@@ -14,4 +14,11 @@ export {
   unwrapOrThrow,
 } from "./sync";
 export { Result, ResultAsync, ResultAsyncFn, ResultFn } from "./types";
-export type { NotNullish, ResultErr, ResultOk } from "./types";
+export type {
+  InferErr,
+  InferOk,
+  Inferable,
+  NotNullish,
+  ResultErr,
+  ResultOk,
+} from "./types";

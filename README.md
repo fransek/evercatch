@@ -147,6 +147,28 @@ async function fetchUserData(): ResultAsync<UserData, Error> {
 }
 ```
 
+## Inferring types
+
+`InferOk` and `InferErr` pull the value and error types out of a result, an
+async result, or a function that returns either, so you don't have to spell
+them out twice.
+
+```typescript
+import { fromThrowable, type InferErr, type InferOk } from "evercatch";
+
+const safeParse = fromThrowable((raw: string): Config => JSON.parse(raw));
+
+type Parsed = InferOk<typeof safeParse>; // Config
+type ParseError = InferErr<typeof safeParse>; // Error
+
+// Works on the async function from the section above, too
+type FetchUserError = InferErr<typeof fetchUserData>; // Error
+type FetchUserResult = InferOk<ReturnType<typeof fetchUserData>>; // UserData
+```
+
+Promises are unwrapped for you, and a result that can never fail has the error
+type `never`.
+
 ## Namespaces
 
 The same functions are also grouped under the type they work with, which makes

@@ -15,7 +15,13 @@ import {
   unwrapOrElse,
   unwrapOrThrow,
 } from "./sync";
-import type { NotNullish, ResultErr, ResultOk } from "./types";
+import type {
+  InferErr,
+  InferOk,
+  NotNullish,
+  ResultErr,
+  ResultOk,
+} from "./types";
 import { Result, ResultAsync, ResultAsyncFn, ResultFn } from "./types";
 
 /**
@@ -105,6 +111,90 @@ describe("types", () => {
     expect(firstError<number, Error>([[null, 1]])).toBe(null);
   });
 });
+
+describe("inference types", () => {
+  type FetchError = "NOT_FOUND" | "NETWORK";
+
+  it("should infer from a Result", () => {
+    expectTypeOf<InferOk<Result<number, Error>>>().toEqualTypeOf<number>();
+    expectTypeOf<InferErr<Result<number, Error>>>().toEqualTypeOf<Error>();
+    expectTypeOf<
+      InferErr<Result<number, FetchError>>
+    >().toEqualTypeOf<FetchError>();
+    expectTypeOf<InferOk<Result<string | number, Error>>>().toEqualTypeOf<
+      string | number
+    >();
+  });
+
+  it("should infer from the halves of a Result", () => {
+    expectTypeOf<InferOk<ResultOk<number>>>().toEqualTypeOf<number>();
+    expectTypeOf<InferErr<ResultOk<number>>>().toEqualTypeOf<never>();
+    expectTypeOf<InferOk<ResultErr<Error>>>().toEqualTypeOf<never>();
+    expectTypeOf<InferErr<ResultErr<Error>>>().toEqualTypeOf<Error>();
+    expectTypeOf<InferOk<typeof ok<number>>>().toEqualTypeOf<number>();
+  });
+
+  it("should not confuse a null value with an error", () => {
+    expectTypeOf<InferOk<Result<null, Error>>>().toEqualTypeOf<null>();
+    expectTypeOf<InferErr<Result<null, Error>>>().toEqualTypeOf<Error>();
+    expectTypeOf<InferErr<ResultOk<null>>>().toEqualTypeOf<never>();
+    expectTypeOf<
+      InferOk<Result<undefined, Error>>
+    >().toEqualTypeOf<undefined>();
+  });
+
+  it("should infer unknown errors", () => {
+    expectTypeOf<InferErr<Result<number, unknown>>>().toEqualTypeOf<unknown>();
+  });
+
+  it("should infer from a ResultAsync", () => {
+    expectTypeOf<
+      InferOk<ResultAsync<Response, Error>>
+    >().toEqualTypeOf<Response>();
+    expectTypeOf<
+      InferErr<ResultAsync<Response, FetchError>>
+    >().toEqualTypeOf<FetchError>();
+  });
+
+  it("should infer from result-returning functions", async () => {
+    const safeParse = fromThrowable((raw: string): { foo: string } =>
+      JSON.parse(raw),
+    );
+    const safeDouble = fromAsyncThrowable(
+      async (value: number) => value * 2,
+      (): FetchError => "NETWORK",
+    );
+    async function fetchUser(
+      id: string,
+    ): ResultAsync<{ id: string }, FetchError> {
+      return ok({ id });
+    }
+
+    expectTypeOf<InferOk<typeof safeParse>>().toEqualTypeOf<{ foo: string }>();
+    expectTypeOf<InferErr<typeof safeParse>>().toEqualTypeOf<Error>();
+    expectTypeOf<InferOk<typeof safeDouble>>().toEqualTypeOf<number>();
+    expectTypeOf<InferErr<typeof safeDouble>>().toEqualTypeOf<FetchError>();
+    expectTypeOf<InferOk<typeof fetchUser>>().toEqualTypeOf<{ id: string }>();
+    expectTypeOf<InferErr<typeof fetchUser>>().toEqualTypeOf<FetchError>();
+    expectTypeOf<
+      InferOk<ResultFn<(value: number) => string, Error>>
+    >().toEqualTypeOf<string>();
+    expectTypeOf<
+      InferErr<ResultAsyncFn<() => Promise<string>, FetchError>>
+    >().toEqualTypeOf<FetchError>();
+
+    expect(safeParse('{"foo": "bar"}')).toEqual([null, { foo: "bar" }]);
+    await expect(safeDouble(21)).resolves.toEqual([null, 42]);
+    await expect(fetchUser("1")).resolves.toEqual([null, { id: "1" }]);
+  });
+});
+
+// @ts-expect-error a plain value is not a result
+export type InferFromValue = InferOk<number>;
+// @ts-expect-error a function that does not return a result is not inferable
+export type InferFromFn = InferErr<() => number>;
+// @ts-expect-error a tuple without a null slot is not a result
+export type InferFromTuple = InferOk<readonly [string, number]>;
 
 describe("namespaces", () => {
   describe("Result", () => {

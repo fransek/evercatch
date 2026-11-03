@@ -90,6 +90,72 @@ export type ResultAsyncFn<
   E extends NotNullish<E>,
 > = (...args: Parameters<F>) => ResultAsync<Awaited<ReturnType<F>>, E>;
 
+/**
+ * Anything the inference types can read a result from: a {@link Result}, a
+ * {@link ResultAsync}, or a function returning either, such as a
+ * {@link ResultFn} or a {@link ResultAsyncFn}.
+ */
+export type Inferable =
+  | Result<unknown, unknown>
+  | ResultAsync<unknown, unknown>
+  | ((
+      ...args: AnyArgs
+    ) => Result<unknown, unknown> | ResultAsync<unknown, unknown>);
+
+// `any[]` rather than `unknown[]`, so functions with typed parameters match.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyArgs = any[];
+
+/** Resolves an {@link Inferable} to the result it holds or returns. */
+type ResultOf<R extends Inferable> = R extends (...args: AnyArgs) => infer Ret
+  ? Awaited<Ret>
+  : Awaited<R>;
+
+// Both helpers distribute over the union of result tuples. The ok tuple has
+// `null` in the error slot and no error type is nullish, so the two can never
+// be mistaken for each other, not even when the value itself is `null`.
+type OkOf<R> = R extends readonly [null, infer T] ? T : never;
+type ErrOf<R> = R extends readonly [infer E, unknown]
+  ? E extends null
+    ? never
+    : E
+  : never;
+
+/**
+ * Infers the value type of a result.
+ *
+ * Works on a {@link Result}, a {@link ResultAsync}, and on functions returning
+ * either, such as a {@link ResultFn} or a {@link ResultAsyncFn}. Promises are
+ * unwrapped, so the value type of an async result is the resolved value.
+ * @template R The result, async result or result-returning function.
+ * @example
+ * ```typescript
+ * const safeParse = fromThrowable((raw: string): Config => JSON.parse(raw));
+ *
+ * type Parsed = InferOk<typeof safeParse>; // Config
+ * type Fetched = InferOk<ResultAsync<Response, Error>>; // Response
+ * ```
+ */
+export type InferOk<R extends Inferable> = OkOf<ResultOf<R>>;
+
+/**
+ * Infers the error type of a result.
+ *
+ * Works on a {@link Result}, a {@link ResultAsync}, and on functions returning
+ * either, such as a {@link ResultFn} or a {@link ResultAsyncFn}. A result that
+ * can never fail, such as a {@link ResultOk}, has the error type `never`.
+ * @template R The result, async result or result-returning function.
+ * @example
+ * ```typescript
+ * async function fetchUser(id: string): ResultAsync<User, "NOT_FOUND" | "NETWORK"> {
+ *   // ...
+ * }
+ *
+ * type FetchUserError = InferErr<typeof fetchUser>; // "NOT_FOUND" | "NETWORK"
+ * ```
+ */
+export type InferErr<R extends Inferable> = ErrOf<ResultOf<R>>;
+
 // The namespaces below group the exported functions under the type they work
 // with. Each one shares its name with that type, which a value can only do in
 // the module where the type is declared, so they live here next to the types.
