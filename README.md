@@ -30,13 +30,11 @@ type Result<T, E> = readonly [null, T] | readonly [E, null];
 Destructure it, check the error, and TypeScript narrows the value for you:
 
 ```typescript
-import { err, ok, type Result } from "evercatch";
+import { Result } from "evercatch";
 
 function divide(a: number, b: number): Result<number, Error> {
-  if (b === 0) {
-    return err(new Error("Division by zero"));
-  }
-  return ok(a / b);
+  if (b === 0) return Result.err(new Error("Division by zero"));
+  return Result.ok(a / b);
 }
 
 const [error, value] = divide(10, 2);
@@ -52,16 +50,21 @@ if (error) {
 nullish. Every error type in the library is constrained to reject `null` and
 `undefined` at compile time.
 
+`Result` is both the type and a namespace holding the functions that work with
+it, so a single import gives you both. The same goes for `ResultAsync`,
+`ResultFn` and `ResultAsyncFn`.
+
 ## Catching what throws
 
 Wrap a call that might throw and get a result back instead.
 
 ```typescript
-import { fromPromise, resultFrom } from "evercatch";
+import { Result, ResultAsync } from "evercatch";
+import { raw } from "./input";
 
-const [parseError, config] = resultFrom(() => JSON.parse(raw));
+const [parseError, config] = Result.from(() => JSON.parse(raw));
 
-const [fetchError, response] = await fromPromise(
+const [fetchError, response] = await ResultAsync.from(
   fetch("https://api.example.com/data"),
 );
 ```
@@ -69,10 +72,11 @@ const [fetchError, response] = await fromPromise(
 Or wrap the function once and reuse the safe version:
 
 ```typescript
-import { fromAsyncThrowable, fromThrowable } from "evercatch";
+import { ResultAsyncFn, ResultFn } from "evercatch";
+import { raw } from "./input";
 
-const safeParse = fromThrowable(JSON.parse);
-const safeFetch = fromAsyncThrowable(fetch);
+const safeParse = ResultFn.from(JSON.parse);
+const safeFetch = ResultAsyncFn.from(fetch);
 
 const [error, data] = safeParse(raw);
 const [fetchError, response] = await safeFetch("https://api.example.com/data");
@@ -88,11 +92,11 @@ an error type of your choosing — a string union, a tagged object, your own err
 class. Whatever you return becomes the error type of the result.
 
 ```typescript
-import { fromPromise } from "evercatch";
+import { ResultAsync } from "evercatch";
 
 type FetchError = "NETWORK_ERROR" | "TIMEOUT";
 
-const [error, response] = await fromPromise(
+const [error, response] = await ResultAsync.from(
   fetch("https://api.example.com/data"),
   (e): FetchError => (e instanceof DOMException ? "TIMEOUT" : "NETWORK_ERROR"),
 );
@@ -108,15 +112,23 @@ When you'd rather not handle the error at the call site, unwrap the result with
 a fallback — or throw after all.
 
 ```typescript
-import { unwrapOr, unwrapOrElse, unwrapOrThrow } from "evercatch";
+import { Result } from "evercatch";
+import { divide } from "./divide";
 
-unwrapOr(divide(10, 0), 0); // 0
-unwrapOrElse(divide(10, 0), (error) => error.message.length); // computed
-unwrapOrThrow(divide(10, 0)); // throws the error
+Result.unwrapOr(divide(10, 0), 0); // 0
+Result.unwrapOrElse(divide(10, 0), (error) => error.message.length); // computed
+Result.unwrapOrThrow(divide(10, 0)); // throws the error
 ```
 
-The async variants take a `Promise` of a result and return a promise:
-`unwrapAsyncOr`, `unwrapAsyncOrElse` and `unwrapAsyncOrThrow`.
+`ResultAsync` has the same three, taking a `Promise` of a result and returning
+a promise:
+
+```typescript
+import { ResultAsync } from "evercatch";
+import { fallbackUser, fetchUserData } from "./user";
+
+await ResultAsync.unwrapOr(fetchUserData(), fallbackUser);
+```
 
 ## Composing
 
@@ -124,26 +136,21 @@ Results compose by returning early. Errors travel upward as values, so a
 function that can fail has a signature that says so.
 
 ```typescript
-import { err, fromPromise, ok, type ResultAsync } from "evercatch";
+import { Result, ResultAsync } from "evercatch";
 import { auth } from "./auth";
+import type { UserData } from "./types";
 
 async function fetchUserData(): ResultAsync<UserData, Error> {
-  const [authError, user] = await fromPromise(auth());
-  if (authError) {
-    return err(authError);
-  }
+  const [authError, user] = await ResultAsync.from(auth());
+  if (authError) return Result.err(authError);
 
-  const [fetchError, response] = await fromPromise(
+  const [fetchError, response] = await ResultAsync.from(
     fetch(`https://api.example.com/user/${user.id}`),
   );
-  if (fetchError) {
-    return err(fetchError);
-  }
-  if (!response.ok) {
-    return err(new Error("Failed to fetch user data"));
-  }
+  if (fetchError) return Result.err(fetchError);
+  if (!response.ok) return Result.err(new Error("Failed to fetch user data"));
 
-  return await fromPromise(response.json());
+  return await ResultAsync.from(response.json());
 }
 ```
 
@@ -154,42 +161,43 @@ async result, or a function that returns either, so you don't have to spell
 them out twice.
 
 ```typescript
-import { fromThrowable, type InferErr, type InferOk } from "evercatch";
+import { ResultFn, type InferErr, type InferOk } from "evercatch";
+import type { Config } from "./types";
+import { fetchUserData } from "./user";
 
-const safeParse = fromThrowable((raw: string): Config => JSON.parse(raw));
+const safeParse = ResultFn.from((raw: string): Config => JSON.parse(raw));
 
 type Parsed = InferOk<typeof safeParse>; // Config
 type ParseError = InferErr<typeof safeParse>; // Error
 
 // Works on the async function from the section above, too
 type FetchUserError = InferErr<typeof fetchUserData>; // Error
-type FetchUserResult = InferOk<ReturnType<typeof fetchUserData>>; // UserData
+type FetchUserData = InferOk<typeof fetchUserData>; // UserData
 ```
 
 Promises are unwrapped for you, and a result that can never fail has the error
 type `never`.
 
-## Namespaces
+## Standalone exports
 
-The same functions are also grouped under the type they work with, which makes
-for shorter names at the call site. This is purely a matter of preference — the
-namespace members and the standalone exports are the same functions.
+Every namespace member is also exported on its own, under a longer name. They
+are the same functions, so this is mostly a matter of preference, but importing
+them individually lets your bundler drop the ones you don't use.
 
-```typescript
-import { Result, ResultAsync, ResultAsyncFn, ResultFn } from "evercatch";
-
-Result.ok(42);
-Result.from(() => JSON.parse(raw));
-Result.unwrapOr(someResult, 0);
-
-await ResultAsync.from(fetch(url));
-
-const safeParse = ResultFn.from(JSON.parse);
-const safeFetch = ResultAsyncFn.from(fetch);
-```
-
-Note that `Result`, `ResultAsync`, `ResultFn` and `ResultAsyncFn` are each both a
-type and a value, so a single import gives you both.
+| Namespace                   | Standalone           |
+| --------------------------- | -------------------- |
+| `Result.ok`                 | `ok`                 |
+| `Result.err`                | `err`                |
+| `Result.from`               | `resultFrom`         |
+| `Result.unwrapOr`           | `unwrapOr`           |
+| `Result.unwrapOrElse`       | `unwrapOrElse`       |
+| `Result.unwrapOrThrow`      | `unwrapOrThrow`      |
+| `ResultAsync.from`          | `fromPromise`        |
+| `ResultAsync.unwrapOr`      | `unwrapAsyncOr`      |
+| `ResultAsync.unwrapOrElse`  | `unwrapAsyncOrElse`  |
+| `ResultAsync.unwrapOrThrow` | `unwrapAsyncOrThrow` |
+| `ResultFn.from`             | `fromThrowable`      |
+| `ResultAsyncFn.from`        | `fromAsyncThrowable` |
 
 ## Documentation
 
