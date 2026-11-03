@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0](https://github.com/fransek/evercatch/compare/v0.11.0...v0.12.0) (2026-11-03)
+
+
+### Features
+
+* add InferOk and InferErr inference types ([#21](https://github.com/fransek/evercatch/issues/21)) ([677f27e](https://github.com/fransek/evercatch/commit/677f27e1195f46d7a5b954968b1ea493cb8f9d51))
+
 ## [0.11.0](https://github.com/fransek/evercatch/compare/v0.10.0...v0.11.0) (2026-09-17)
 
 
