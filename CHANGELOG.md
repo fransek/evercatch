@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.1](https://github.com/fransek/evercatch/compare/v0.12.0...v0.12.1) (2026-11-05)
+
+
+### Bug Fixes
+
+* support falsy errors in unwrap functions ([#25](https://github.com/fransek/evercatch/issues/25)) ([06e2a3f](https://github.com/fransek/evercatch/commit/06e2a3fcae6cf627bb3536cbf3d9ba1780af0025))
+
 ## [0.12.0](https://github.com/fransek/evercatch/compare/v0.11.0...v0.12.0) (2026-11-03)
 
 
