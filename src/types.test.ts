@@ -1,5 +1,6 @@
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
 
+import * as async from "./async";
 import {
   fromAsyncThrowable,
   fromPromise,
@@ -7,7 +8,8 @@ import {
   unwrapAsyncOrElse,
   unwrapAsyncOrThrow,
 } from "./async";
-import { err, ok } from "./shared";
+import { err, isErr, isOk, ok } from "./shared";
+import * as sync from "./sync";
 import {
   fromThrowable,
   resultFrom,
@@ -198,21 +200,26 @@ export type InferFromTuple = InferOk<readonly [string, number]>;
 
 describe("namespaces", () => {
   describe("Result", () => {
-    it("should group the functions that create and unwrap a Result", () => {
-      expect(Object.keys(Result)).toEqual([
-        "ok",
-        "err",
-        "from",
-        "unwrapOrThrow",
-        "unwrapOr",
-        "unwrapOrElse",
-      ]);
-      expect(Result.ok).toBe(ok);
-      expect(Result.err).toBe(err);
-      expect(Result.from).toBe(resultFrom);
-      expect(Result.unwrapOrThrow).toBe(unwrapOrThrow);
-      expect(Result.unwrapOr).toBe(unwrapOr);
-      expect(Result.unwrapOrElse).toBe(unwrapOrElse);
+    it("should group the Result functions under shorter names", () => {
+      expect(Result).toEqual({
+        ok,
+        err,
+        isOk,
+        isErr,
+        from: resultFrom,
+        unwrapOrThrow,
+        unwrapOr,
+        unwrapOrElse,
+        map: sync.map,
+        mapErr: sync.mapErr,
+        andThen: sync.andThen,
+        match: sync.match,
+        all: sync.all,
+        collect: sync.collect,
+        gen: sync.gen,
+        fromNullable: sync.fromNullable,
+        toNullable: sync.toNullable,
+      });
     });
 
     it("should share its name with the type it groups", () => {
@@ -264,17 +271,22 @@ describe("namespaces", () => {
   });
 
   describe("ResultAsync", () => {
-    it("should group the functions that create and unwrap a ResultAsync", () => {
-      expect(Object.keys(ResultAsync)).toEqual([
-        "from",
-        "unwrapOrThrow",
-        "unwrapOr",
-        "unwrapOrElse",
-      ]);
-      expect(ResultAsync.from).toBe(fromPromise);
-      expect(ResultAsync.unwrapOrThrow).toBe(unwrapAsyncOrThrow);
-      expect(ResultAsync.unwrapOr).toBe(unwrapAsyncOr);
-      expect(ResultAsync.unwrapOrElse).toBe(unwrapAsyncOrElse);
+    it("should group the ResultAsync functions under shorter names", () => {
+      expect(ResultAsync).toEqual({
+        from: fromPromise,
+        unwrapOrThrow: unwrapAsyncOrThrow,
+        unwrapOr: unwrapAsyncOr,
+        unwrapOrElse: unwrapAsyncOrElse,
+        map: async.mapAsync,
+        mapErr: async.mapErrAsync,
+        andThen: async.andThenAsync,
+        match: async.matchAsync,
+        all: async.allAsync,
+        collect: async.collectAsync,
+        gen: async.genAsync,
+        retry: async.retry,
+        withTimeout: async.withTimeout,
+      });
     });
 
     it("should share its name with the type it groups", async () => {

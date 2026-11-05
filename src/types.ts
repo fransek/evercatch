@@ -1,14 +1,32 @@
 import {
+  allAsync,
+  andThenAsync,
+  collectAsync,
   fromAsyncThrowable,
   fromPromise,
+  genAsync,
+  mapAsync,
+  mapErrAsync,
+  matchAsync,
+  retry,
   unwrapAsyncOr,
   unwrapAsyncOrElse,
   unwrapAsyncOrThrow,
+  withTimeout,
 } from "./async";
-import { err, ok } from "./shared";
+import { err, isErr, isOk, ok } from "./shared";
 import {
+  all,
+  andThen,
+  collect,
+  fromNullable,
   fromThrowable,
+  gen,
+  map,
+  mapErr,
+  match,
   resultFrom,
+  toNullable,
   unwrapOr,
   unwrapOrElse,
   unwrapOrThrow,
@@ -60,6 +78,14 @@ export type ResultErr<E extends NotNullish<E>> = readonly [E, null];
  * @template E The type of the error in case of failure. Cannot be nullish.
  */
 export type Result<T, E extends NotNullish<E>> = ResultOk<T> | ResultErr<E>;
+
+/**
+ * A {@link Result} whose error type is computed, such as the union of several
+ * error types. The same type, without the {@link NotNullish} check, which
+ * TypeScript can't verify for a computed type.
+ * @internal
+ */
+export type UncheckedResult<T, E> = ResultOk<T> | readonly [E, null];
 
 /**
  * Represents an asynchronous result that can be either successful or an error.
@@ -114,8 +140,10 @@ type ResultOf<R extends Inferable> = R extends (...args: AnyArgs) => infer Ret
 // Both helpers distribute over the union of result tuples. The ok tuple has
 // `null` in the error slot and no error type is nullish, so the two can never
 // be mistaken for each other, not even when the value itself is `null`.
-type OkOf<R> = R extends readonly [null, infer T] ? T : never;
-type ErrOf<R> = R extends readonly [infer E, unknown]
+/** @internal */
+export type OkOf<R> = R extends readonly [null, infer T] ? T : never;
+/** @internal */
+export type ErrOf<R> = R extends readonly [infer E, unknown]
   ? E extends null
     ? never
     : E
@@ -161,8 +189,8 @@ export type InferErr<R extends Inferable> = ErrOf<ResultOf<R>>;
 // the module where the type is declared, so they live here next to the types.
 
 /**
- * The functions that create and unwrap a {@link Result}, grouped under the
- * type they work with.
+ * The functions that create, check, transform, combine and unwrap a
+ * {@link Result}, grouped under the type they work with.
  *
  * Every member is also exported on its own, so this is only a matter of
  * preference. The grouped names are shorter, since the type they belong to
@@ -186,6 +214,10 @@ export const Result = {
   ok,
   /** See {@link err}. */
   err,
+  /** See {@link isOk}. */
+  isOk,
+  /** See {@link isErr}. */
+  isErr,
   /** See {@link resultFrom}. */
   from: resultFrom,
   /** See {@link unwrapOrThrow}. */
@@ -194,6 +226,24 @@ export const Result = {
   unwrapOr,
   /** See {@link unwrapOrElse}. */
   unwrapOrElse,
+  /** See {@link map}. */
+  map,
+  /** See {@link mapErr}. */
+  mapErr,
+  /** See {@link andThen}. */
+  andThen,
+  /** See {@link match}. */
+  match,
+  /** See {@link all}. */
+  all,
+  /** See {@link collect}. */
+  collect,
+  /** See {@link gen}. */
+  gen,
+  /** See {@link fromNullable}. */
+  fromNullable,
+  /** See {@link toNullable}. */
+  toNullable,
 } as const;
 
 /**
@@ -220,8 +270,8 @@ export const ResultFn = {
 } as const;
 
 /**
- * The functions that create and unwrap a {@link ResultAsync}, grouped under
- * the type they work with.
+ * The functions that create, transform, combine and unwrap a
+ * {@link ResultAsync}, grouped under the type they work with.
  *
  * Every member is also exported on its own, so this is only a matter of
  * preference. The grouped names are shorter, since the type they belong to
@@ -251,6 +301,24 @@ export const ResultAsync = {
   unwrapOr: unwrapAsyncOr,
   /** See {@link unwrapAsyncOrElse}. */
   unwrapOrElse: unwrapAsyncOrElse,
+  /** See {@link mapAsync}. */
+  map: mapAsync,
+  /** See {@link mapErrAsync}. */
+  mapErr: mapErrAsync,
+  /** See {@link andThenAsync}. */
+  andThen: andThenAsync,
+  /** See {@link matchAsync}. */
+  match: matchAsync,
+  /** See {@link allAsync}. */
+  all: allAsync,
+  /** See {@link collectAsync}. */
+  collect: collectAsync,
+  /** See {@link genAsync}. */
+  gen: genAsync,
+  /** See {@link retry}. */
+  retry,
+  /** See {@link withTimeout}. */
+  withTimeout,
 } as const;
 
 /**
