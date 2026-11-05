@@ -1,7 +1,7 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import { err, ok } from "./shared";
-import type { ResultErr, ResultOk } from "./types";
+import { err, isErr, isOk, ok } from "./shared";
+import type { Result, ResultErr, ResultOk } from "./types";
 
 describe("shared", () => {
   describe("ok", () => {
@@ -81,6 +81,75 @@ describe("shared", () => {
       expect(err("boom")).toEqual(["boom", null]);
       expect(err(404)).toEqual([404, null]);
       expect(err({ code: "DB" })).toEqual([{ code: "DB" }, null]);
+    });
+  });
+
+  describe("isOk", () => {
+    it("should return true for ok results, including nullish values", () => {
+      expect(isOk(ok(42))).toBe(true);
+      expect(isOk(ok(null))).toBe(true);
+      expect(isOk(ok())).toBe(true);
+    });
+
+    it("should return false for err results, including falsy errors", () => {
+      expect(isOk(err(new Error("Oops")))).toBe(false);
+      for (const error of [0, "", false, 0n]) {
+        expect(isOk(err(error))).toBe(false);
+      }
+    });
+
+    it("should narrow the result to ResultOk", () => {
+      const result = ok(42) as Result<number, 0 | "">;
+
+      if (isOk(result)) {
+        expectTypeOf(result).toEqualTypeOf<ResultOk<number>>();
+        expectTypeOf(result[1]).toEqualTypeOf<number>();
+      } else {
+        expectTypeOf(result).toEqualTypeOf<ResultErr<0 | "">>();
+      }
+    });
+
+    it("should narrow when used as a filter predicate", () => {
+      const results: Result<number, string>[] = [ok(1), err("Oops"), ok(2)];
+      const oks = results.filter(isOk);
+
+      expect(oks).toEqual([ok(1), ok(2)]);
+      expectTypeOf(oks).toEqualTypeOf<ResultOk<number>[]>();
+    });
+  });
+
+  describe("isErr", () => {
+    it("should return true for err results, including falsy errors", () => {
+      expect(isErr(err(new Error("Oops")))).toBe(true);
+      expect(isErr(err())).toBe(true);
+      for (const error of [0, "", false, 0n]) {
+        expect(isErr(err(error))).toBe(true);
+      }
+    });
+
+    it("should return false for ok results, including nullish values", () => {
+      expect(isErr(ok(42))).toBe(false);
+      expect(isErr(ok(null))).toBe(false);
+      expect(isErr(ok())).toBe(false);
+    });
+
+    it("should narrow the result to ResultErr", () => {
+      const result = err("") as Result<number, 0 | "">;
+
+      if (isErr(result)) {
+        expectTypeOf(result).toEqualTypeOf<ResultErr<0 | "">>();
+        expectTypeOf(result[0]).toEqualTypeOf<0 | "">();
+      } else {
+        expectTypeOf(result).toEqualTypeOf<ResultOk<number>>();
+      }
+    });
+
+    it("should narrow when used as a filter predicate", () => {
+      const results: Result<number, string>[] = [ok(1), err("Oops"), ok(2)];
+      const errs = results.filter(isErr);
+
+      expect(errs).toEqual([err("Oops")]);
+      expectTypeOf(errs).toEqualTypeOf<ResultErr<string>[]>();
     });
   });
 });
