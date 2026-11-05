@@ -79,7 +79,7 @@ export function unwrapOrThrow<T, E extends NotNullish<E> = Error>(
   result: Result<T, E>,
 ): T {
   const [error, value] = result;
-  if (error) {
+  if (error !== null) {
     throw error;
   }
   return value as T;
@@ -109,7 +109,7 @@ export function unwrapOr<T, E extends NotNullish<E> = Error>(
   fallback: T,
 ): T {
   const [error, value] = result;
-  if (error) {
+  if (error !== null) {
     return fallback;
   }
   return value as T;
@@ -142,7 +142,7 @@ export function unwrapOrElse<T, E extends NotNullish<E> = Error>(
   fallbackFn: (err: E) => T,
 ): T {
   const [error, value] = result;
-  if (error) {
+  if (error !== null) {
     return fallbackFn(error);
   }
   return value as T;

@@ -78,6 +78,17 @@ describe("sync", () => {
       const error = new Error("test error");
       expect(() => unwrapOrThrow(err(error))).toThrow(error);
     });
+
+    it("should throw falsy errors that are not nullish", () => {
+      for (const error of [0, "", false, 0n]) {
+        expect(() => unwrapOrThrow(err(error))).toThrow();
+        try {
+          unwrapOrThrow(err(error));
+        } catch (thrown) {
+          expect(thrown).toBe(error);
+        }
+      }
+    });
   });
 
   describe("unwrapOr", () => {
@@ -87,6 +98,12 @@ describe("sync", () => {
 
     it("should return the fallback when result is err", () => {
       expect(unwrapOr(err(new Error("test error")), 0)).toBe(0);
+    });
+
+    it("should return the fallback when the error is falsy", () => {
+      for (const error of [0, "", false, 0n]) {
+        expect(unwrapOr(err(error), 1)).toBe(1);
+      }
     });
   });
 
@@ -106,6 +123,15 @@ describe("sync", () => {
 
       expect(unwrapOrElse(err(error), fallbackFn)).toBe("test error".length);
       expect(fallbackFn).toHaveBeenCalledWith(error);
+    });
+
+    it("should call the fallback with a falsy error", () => {
+      for (const error of [0, "", false, 0n]) {
+        const fallbackFn = vi.fn(() => 1);
+
+        expect(unwrapOrElse(err(error), fallbackFn)).toBe(1);
+        expect(fallbackFn).toHaveBeenCalledWith(error);
+      }
     });
   });
 });

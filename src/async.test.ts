@@ -72,6 +72,14 @@ describe("async", () => {
         unwrapAsyncOrThrow(Promise.resolve(err(error))),
       ).rejects.toThrow(error);
     });
+
+    it("should reject with falsy errors that are not nullish", async () => {
+      for (const error of [0, "", false, 0n]) {
+        await expect(
+          unwrapAsyncOrThrow(Promise.resolve(err(error))),
+        ).rejects.toBe(error);
+      }
+    });
   });
 
   describe("unwrapAsyncOr", () => {
@@ -83,6 +91,14 @@ describe("async", () => {
       await expect(
         unwrapAsyncOr(Promise.resolve(err(new Error("test error"))), 0),
       ).resolves.toBe(0);
+    });
+
+    it("should return the fallback when the error is falsy", async () => {
+      for (const error of [0, "", false, 0n]) {
+        await expect(
+          unwrapAsyncOr(Promise.resolve(err(error)), 1),
+        ).resolves.toBe(1);
+      }
     });
   });
 
@@ -106,6 +122,17 @@ describe("async", () => {
         unwrapAsyncOrElse(Promise.resolve(err(error)), fallbackFn),
       ).resolves.toBe("test error".length);
       expect(fallbackFn).toHaveBeenCalledWith(error);
+    });
+
+    it("should call the fallback with a falsy error", async () => {
+      for (const error of [0, "", false, 0n]) {
+        const fallbackFn = vi.fn(() => 1);
+
+        await expect(
+          unwrapAsyncOrElse(Promise.resolve(err(error)), fallbackFn),
+        ).resolves.toBe(1);
+        expect(fallbackFn).toHaveBeenCalledWith(error);
+      }
     });
   });
 });
