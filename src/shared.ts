@@ -1,4 +1,4 @@
-import type { NotNullish, Result, ResultErr, ResultOk } from "./types";
+import type { NotNullish, ResultErr, ResultOk } from "./types";
 
 /**
  * Creates a successful result with the given value.
@@ -57,65 +57,6 @@ export function err(): ResultErr<Error>;
 export function err<E extends NotNullish<E>>(error: E): ResultErr<E>;
 export function err<E extends NotNullish<E> = Error>(error?: E): ResultErr<E> {
   return [error ?? (new Error() as E), null] as const;
-}
-
-/**
- * Checks whether a result is ok, narrowing it to a {@link ResultOk}.
- *
- * Prefer this over `if (!error)` when the error type can be falsy, such as
- * `0`, `""` or `false`: only `null` in the error slot means "this result is
- * ok".
- * @group Core
- * @template T The type of the value.
- * @template E The type of the error.
- * @param result The result to check.
- * @returns `true` if the result is ok, `false` if it holds an error.
- * @example
- * ```typescript
- * const result = divide(10, 2);
- *
- * if (isOk(result)) {
- *   console.log(result[1]); // number
- * }
- * ```
- * @example
- * ```typescript
- * const values = results.filter(isOk).map(([, value]) => value);
- * ```
- */
-export function isOk<T, E extends NotNullish<E>>(
-  result: Result<T, E>,
-): result is ResultOk<T> {
-  return result[0] === null;
-}
-
-/**
- * Checks whether a result holds an error, narrowing it to a {@link ResultErr}.
- *
- * Prefer this over `if (error)` when the error type can be falsy, such as
- * `0`, `""` or `false`: any error that is not `null` counts, falsy or not.
- * @group Core
- * @template T The type of the value.
- * @template E The type of the error.
- * @param result The result to check.
- * @returns `true` if the result holds an error, `false` if it is ok.
- * @example
- * ```typescript
- * const result = divide(10, 0);
- *
- * if (isErr(result)) {
- *   console.error(result[0]); // Error
- * }
- * ```
- * @example
- * ```typescript
- * const errors = results.filter(isErr).map(([error]) => error);
- * ```
- */
-export function isErr<T, E extends NotNullish<E>>(
-  result: Result<T, E>,
-): result is ResultErr<E> {
-  return result[0] !== null;
 }
 
 export function defaultErrorMapper<E extends NotNullish<E> = Error>(

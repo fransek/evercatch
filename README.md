@@ -51,34 +51,11 @@ nullish. Every error type in the library is constrained to reject `null` and
 `undefined` at compile time.
 
 Falsy errors like `0`, `""` or `false` are allowed, though. If your error type
-can be falsy, check `error !== null` instead of `if (error)`, or use the type
-guards below.
+can be falsy, check `error !== null` instead of `if (error)`.
 
 `Result` is both the type and a namespace holding the functions that work with
 it, so a single import gives you both. The same goes for `ResultAsync`,
 `ResultFn` and `ResultAsyncFn`.
-
-### Checking without destructuring
-
-`Result.isOk` and `Result.isErr` narrow a result you haven't destructured. They
-only look for `null` in the error slot, so falsy errors are handled correctly.
-They work well as array predicates, too.
-
-```typescript
-import { Result } from "evercatch";
-import { divide } from "./divide";
-
-const result = divide(10, 2);
-
-if (Result.isErr(result)) {
-  console.error(result[0].message);
-} else {
-  console.log(result[1]); // number
-}
-
-const results = [divide(1, 2), divide(1, 0)];
-const values = results.filter(Result.isOk).map(([, value]) => value); // number[]
-```
 
 ## Catching what throws
 
@@ -214,8 +191,6 @@ them individually lets your bundler drop the ones you don't use.
 | --------------------------- | -------------------- |
 | `Result.ok`                 | `ok`                 |
 | `Result.err`                | `err`                |
-| `Result.isOk`               | `isOk`               |
-| `Result.isErr`              | `isErr`              |
 | `Result.from`               | `resultFrom`         |
 | `Result.unwrapOr`           | `unwrapOr`           |
 | `Result.unwrapOrElse`       | `unwrapOrElse`       |

@@ -5,7 +5,7 @@ export {
   unwrapAsyncOrElse,
   unwrapAsyncOrThrow,
 } from "./async";
-export { err, isErr, isOk, ok } from "./shared";
+export { err, ok } from "./shared";
 export {
   fromThrowable,
   resultFrom,

@@ -1,4 +1,4 @@
-import { defaultErrorMapper, err, isErr, ok } from "./shared";
+import { defaultErrorMapper, err, ok } from "./shared";
 import type { NotNullish, Result, ResultFn } from "./types";
 
 /**
@@ -78,10 +78,11 @@ export function fromThrowable<
 export function unwrapOrThrow<T, E extends NotNullish<E> = Error>(
   result: Result<T, E>,
 ): T {
-  if (isErr(result)) {
-    throw result[0];
+  const [error, value] = result;
+  if (error !== null) {
+    throw error;
   }
-  return result[1];
+  return value as T;
 }
 
 /**
@@ -107,10 +108,11 @@ export function unwrapOr<T, E extends NotNullish<E> = Error>(
   result: Result<T, E>,
   fallback: T,
 ): T {
-  if (isErr(result)) {
+  const [error, value] = result;
+  if (error !== null) {
     return fallback;
   }
-  return result[1];
+  return value as T;
 }
 
 /**
@@ -139,8 +141,9 @@ export function unwrapOrElse<T, E extends NotNullish<E> = Error>(
   result: Result<T, E>,
   fallbackFn: (err: E) => T,
 ): T {
-  if (isErr(result)) {
-    return fallbackFn(result[0]);
+  const [error, value] = result;
+  if (error !== null) {
+    return fallbackFn(error);
   }
-  return result[1];
+  return value as T;
 }

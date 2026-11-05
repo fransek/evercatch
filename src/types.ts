@@ -5,7 +5,7 @@ import {
   unwrapAsyncOrElse,
   unwrapAsyncOrThrow,
 } from "./async";
-import { err, isErr, isOk, ok } from "./shared";
+import { err, ok } from "./shared";
 import {
   fromThrowable,
   resultFrom,
@@ -161,8 +161,8 @@ export type InferErr<R extends Inferable> = ErrOf<ResultOf<R>>;
 // the module where the type is declared, so they live here next to the types.
 
 /**
- * The functions that create, check and unwrap a {@link Result}, grouped
- * under the type they work with.
+ * The functions that create and unwrap a {@link Result}, grouped under the
+ * type they work with.
  *
  * Every member is also exported on its own, so this is only a matter of
  * preference. The grouped names are shorter, since the type they belong to
@@ -186,10 +186,6 @@ export const Result = {
   ok,
   /** See {@link err}. */
   err,
-  /** See {@link isOk}. */
-  isOk,
-  /** See {@link isErr}. */
-  isErr,
   /** See {@link resultFrom}. */
   from: resultFrom,
   /** See {@link unwrapOrThrow}. */
