@@ -50,6 +50,9 @@ if (error) {
 nullish. Every error type in the library is constrained to reject `null` and
 `undefined` at compile time.
 
+Falsy errors like `0`, `""` or `false` are allowed, though. If your error type
+can be falsy, check `error !== null` instead of `if (error)`.
+
 `Result` is both the type and a namespace holding the functions that work with
 it, so a single import gives you both. The same goes for `ResultAsync`,
 `ResultFn` and `ResultAsyncFn`.
