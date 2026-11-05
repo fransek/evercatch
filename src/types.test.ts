@@ -7,7 +7,7 @@ import {
   unwrapAsyncOrElse,
   unwrapAsyncOrThrow,
 } from "./async";
-import { err, ok } from "./shared";
+import { err, isErr, isOk, ok } from "./shared";
 import {
   fromThrowable,
   resultFrom,
@@ -198,10 +198,12 @@ export type InferFromTuple = InferOk<readonly [string, number]>;
 
 describe("namespaces", () => {
   describe("Result", () => {
-    it("should group the functions that create and unwrap a Result", () => {
+    it("should group the functions that create, check and unwrap a Result", () => {
       expect(Object.keys(Result)).toEqual([
         "ok",
         "err",
+        "isOk",
+        "isErr",
         "from",
         "unwrapOrThrow",
         "unwrapOr",
@@ -209,6 +211,8 @@ describe("namespaces", () => {
       ]);
       expect(Result.ok).toBe(ok);
       expect(Result.err).toBe(err);
+      expect(Result.isOk).toBe(isOk);
+      expect(Result.isErr).toBe(isErr);
       expect(Result.from).toBe(resultFrom);
       expect(Result.unwrapOrThrow).toBe(unwrapOrThrow);
       expect(Result.unwrapOr).toBe(unwrapOr);
