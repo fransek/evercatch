@@ -257,6 +257,92 @@ export async function andThenAsync<
 }
 
 /**
+ * Recovers from an error by calling a function that returns a new result, or
+ * an async result. Ok results pass through untouched.
+ * @group Async
+ * @template T The type of the value.
+ * @template U The type of the value returned by the function.
+ * @template E The type of the error.
+ * @template F The type of the error returned by the function.
+ * @param resultAsync The async result to recover.
+ * @param fn A function that receives the error and returns a new result.
+ * @returns A promise of the original ok result, or the result returned by the function.
+ * @example
+ * ```typescript
+ * const [error, user] = await orElseAsync(fetchUser(id), () =>
+ *   fetchCachedUser(id),
+ * );
+ * ```
+ */
+export async function orElseAsync<
+  T,
+  U,
+  E extends NotNullish<E>,
+  F extends NotNullish<F>,
+>(
+  resultAsync: ResultAsync<T, E>,
+  fn: (error: E) => Result<U, F> | ResultAsync<U, F>,
+): ResultAsync<T | U, F> {
+  const result = await resultAsync;
+  if (isErr(result)) {
+    return await fn(result[0]);
+  }
+  return result;
+}
+
+/**
+ * Calls a function with the value of an ok async result, for side effects
+ * such as logging, and returns the result unchanged. An async function is
+ * awaited before the result is returned.
+ * @group Async
+ * @template T The type of the value.
+ * @template E The type of the error.
+ * @param resultAsync The async result to inspect.
+ * @param fn A function that receives the value. Its return value is ignored.
+ * @returns A promise of the same result.
+ * @example
+ * ```typescript
+ * const result = await tapAsync(fetchUser(id), (user) => audit(user.id));
+ * ```
+ */
+export async function tapAsync<T, E extends NotNullish<E>>(
+  resultAsync: ResultAsync<T, E>,
+  fn: (value: T) => unknown,
+): ResultAsync<T, E> {
+  const result = await resultAsync;
+  if (!isErr(result)) {
+    await fn(result[1]);
+  }
+  return result;
+}
+
+/**
+ * Calls a function with the error of an async error result, for side effects
+ * such as logging, and returns the result unchanged. An async function is
+ * awaited before the result is returned.
+ * @group Async
+ * @template T The type of the value.
+ * @template E The type of the error.
+ * @param resultAsync The async result to inspect.
+ * @param fn A function that receives the error. Its return value is ignored.
+ * @returns A promise of the same result.
+ * @example
+ * ```typescript
+ * const result = await tapErrAsync(fetchUser(id), (error) => report(error));
+ * ```
+ */
+export async function tapErrAsync<T, E extends NotNullish<E>>(
+  resultAsync: ResultAsync<T, E>,
+  fn: (error: E) => unknown,
+): ResultAsync<T, E> {
+  const result = await resultAsync;
+  if (isErr(result)) {
+    await fn(result[0]);
+  }
+  return result;
+}
+
+/**
  * Handles both outcomes of an async result in a single expression. The
  * handlers can be async.
  * @group Async
@@ -289,7 +375,8 @@ export async function matchAsync<T, E extends NotNullish<E>, A, B = A>(
   return await handlers.ok(result[1]);
 }
 
-type MaybeAsyncResult =
+/** @internal */
+export type MaybeAsyncResult =
   | Result<unknown, unknown>
   | ResultAsync<unknown, unknown>;
 

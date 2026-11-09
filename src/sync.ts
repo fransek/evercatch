@@ -232,6 +232,80 @@ export function andThen<T, U, E extends NotNullish<E>, F extends NotNullish<F>>(
 }
 
 /**
+ * Recovers from an error by calling a function that returns a new result.
+ * Ok results pass through untouched, so the function only runs on errors.
+ * @group Sync
+ * @template T The type of the value.
+ * @template U The type of the value returned by the function.
+ * @template E The type of the error.
+ * @template F The type of the error returned by the function.
+ * @param result The result to recover.
+ * @param fn A function that receives the error and returns a new result.
+ * @returns The original ok result, or the result returned by the function.
+ * @example
+ * ```typescript
+ * const [error, config] = orElse(readConfig(path), () => ok(defaultConfig));
+ * ```
+ */
+export function orElse<T, U, E extends NotNullish<E>, F extends NotNullish<F>>(
+  result: Result<T, E>,
+  fn: (error: E) => Result<U, F>,
+): Result<T | U, F> {
+  if (isErr(result)) {
+    return fn(result[0]);
+  }
+  return result;
+}
+
+/**
+ * Calls a function with the value of an ok result, for side effects such as
+ * logging, and returns the result unchanged.
+ * @group Sync
+ * @template T The type of the value.
+ * @template E The type of the error.
+ * @param result The result to inspect.
+ * @param fn A function that receives the value. Its return value is ignored.
+ * @returns The same result.
+ * @example
+ * ```typescript
+ * const result = tap(parse(raw), (config) => console.log("Parsed", config));
+ * ```
+ */
+export function tap<T, E extends NotNullish<E>>(
+  result: Result<T, E>,
+  fn: (value: T) => unknown,
+): Result<T, E> {
+  if (!isErr(result)) {
+    fn(result[1]);
+  }
+  return result;
+}
+
+/**
+ * Calls a function with the error of an error result, for side effects such
+ * as logging, and returns the result unchanged.
+ * @group Sync
+ * @template T The type of the value.
+ * @template E The type of the error.
+ * @param result The result to inspect.
+ * @param fn A function that receives the error. Its return value is ignored.
+ * @returns The same result.
+ * @example
+ * ```typescript
+ * const result = tapErr(parse(raw), (error) => console.error(error));
+ * ```
+ */
+export function tapErr<T, E extends NotNullish<E>>(
+  result: Result<T, E>,
+  fn: (error: E) => unknown,
+): Result<T, E> {
+  if (isErr(result)) {
+    fn(result[0]);
+  }
+  return result;
+}
+
+/**
  * Handles both outcomes of a result in a single expression.
  * @group Sync
  * @template T The type of the value.

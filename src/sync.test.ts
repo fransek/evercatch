@@ -11,7 +11,10 @@ import {
   map,
   mapErr,
   match,
+  orElse,
   resultFrom,
+  tap,
+  tapErr,
   toNullable,
   unwrapOr,
   unwrapOrElse,
@@ -214,6 +217,45 @@ describe("sync combinators", () => {
 
       expect(andThen(parseNumber("x"), fn)).toEqual(["NAN", null]);
       expect(fn).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("orElse", () => {
+    it("should recover from an error", () => {
+      const result = orElse(parseNumber("x"), () => ok("default"));
+
+      expect(result).toEqual([null, "default"]);
+      expectTypeOf(result).toEqualTypeOf<Result<number | string, never>>();
+    });
+
+    it("should pass ok results through without calling fn", () => {
+      const fn = vi.fn();
+      const result = parseNumber("4");
+
+      expect(orElse(result, fn)).toBe(result);
+      expect(fn).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("tap and tapErr", () => {
+    it("should call tap with the value and return the same result", () => {
+      const fn = vi.fn();
+      const result = parseNumber("4");
+
+      expect(tap(result, fn)).toBe(result);
+      expect(fn).toHaveBeenCalledWith(4);
+      tap(parseNumber("x"), fn);
+      expect(fn).toHaveBeenCalledOnce();
+    });
+
+    it("should call tapErr with the error and return the same result", () => {
+      const fn = vi.fn();
+      const result = err(0);
+
+      expect(tapErr(result, fn)).toBe(result);
+      expect(fn).toHaveBeenCalledWith(0);
+      tapErr(parseNumber("4"), fn);
+      expect(fn).toHaveBeenCalledOnce();
     });
   });
 

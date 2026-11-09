@@ -8,13 +8,17 @@ export {
   mapAsync,
   mapErrAsync,
   matchAsync,
+  orElseAsync,
   retry,
+  tapAsync,
+  tapErrAsync,
   unwrapAsyncOr,
   unwrapAsyncOrElse,
   unwrapAsyncOrThrow,
   withTimeout,
 } from "./async";
 export type { RetryOptions, UnwrapAsync } from "./async";
+export { ResultAsyncChain, ResultChain } from "./chain";
 export { TaggedError, TimeoutError } from "./errors";
 export type { Tagged, TaggedErrorConstructor } from "./errors";
 export { err, isErr, isOk, ok } from "./shared";
@@ -28,7 +32,10 @@ export {
   map,
   mapErr,
   match,
+  orElse,
   resultFrom,
+  tap,
+  tapErr,
   toNullable,
   unwrapOr,
   unwrapOrElse,

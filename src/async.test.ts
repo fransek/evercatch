@@ -10,7 +10,10 @@ import {
   mapAsync,
   mapErrAsync,
   matchAsync,
+  orElseAsync,
   retry,
+  tapAsync,
+  tapErrAsync,
   unwrapAsyncOr,
   unwrapAsyncOrElse,
   unwrapAsyncOrThrow,
@@ -225,6 +228,56 @@ describe("async combinators", () => {
         null,
       ]);
       expect(fn).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("orElseAsync", () => {
+    it("should recover with a sync or async result", async () => {
+      await expect(
+        orElseAsync(fetchNumber("x"), () => fetchNumber("1")),
+      ).resolves.toEqual([null, 1]);
+      await expect(
+        orElseAsync(fetchNumber("x"), () => positive(-1)),
+      ).resolves.toEqual(["NEGATIVE", null]);
+    });
+
+    it("should pass ok results through without calling fn", async () => {
+      const fn = vi.fn();
+
+      await expect(orElseAsync(fetchNumber("4"), fn)).resolves.toEqual([
+        null,
+        4,
+      ]);
+      expect(fn).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("tapAsync and tapErrAsync", () => {
+    it("should await the callback and return the same result", async () => {
+      const order: string[] = [];
+      const fn = async () => {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        order.push("tap");
+      };
+
+      const result = await tapAsync(fetchNumber("4"), fn);
+      order.push("after");
+
+      expect(result).toEqual([null, 4]);
+      expect(order).toEqual(["tap", "after"]);
+    });
+
+    it("should only call each callback on its own outcome", async () => {
+      const onOk = vi.fn();
+      const onErr = vi.fn();
+
+      await tapAsync(fetchNumber("x"), onOk);
+      await tapErrAsync(fetchNumber("4"), onErr);
+      await tapErrAsync(fetchNumber("x"), onErr);
+
+      expect(onOk).not.toHaveBeenCalled();
+      expect(onErr).toHaveBeenCalledOnce();
+      expect(onErr).toHaveBeenCalledWith("NAN");
     });
   });
 
