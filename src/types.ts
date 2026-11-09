@@ -1,14 +1,28 @@
+import type { MaybeAsyncResult, RetryOptions, UnwrapAsync } from "./async";
 import {
+  allAsync,
+  collectAsync,
   fromAsyncThrowable,
   fromPromise,
+  genAsync,
+  retry,
   unwrapAsyncOr,
   unwrapAsyncOrElse,
   unwrapAsyncOrThrow,
+  withTimeout,
 } from "./async";
-import { err, ok } from "./shared";
+import { ResultAsyncChain, ResultChain } from "./chain";
+import type { TimeoutError } from "./errors";
+import { err, isErr, isOk, ok } from "./shared";
+import type { OkValues } from "./sync";
 import {
+  all,
+  collect,
+  fromNullable,
   fromThrowable,
+  gen,
   resultFrom,
+  toNullable,
   unwrapOr,
   unwrapOrElse,
   unwrapOrThrow,
@@ -60,6 +74,14 @@ export type ResultErr<E extends NotNullish<E>> = readonly [E, null];
  * @template E The type of the error in case of failure. Cannot be nullish.
  */
 export type Result<T, E extends NotNullish<E>> = ResultOk<T> | ResultErr<E>;
+
+/**
+ * A {@link Result} whose error type is computed, such as the union of several
+ * error types. The same type, without the {@link NotNullish} check, which
+ * TypeScript can't verify for a computed type.
+ * @internal
+ */
+export type UncheckedResult<T, E> = ResultOk<T> | readonly [E, null];
 
 /**
  * Represents an asynchronous result that can be either successful or an error.
@@ -114,8 +136,10 @@ type ResultOf<R extends Inferable> = R extends (...args: AnyArgs) => infer Ret
 // Both helpers distribute over the union of result tuples. The ok tuple has
 // `null` in the error slot and no error type is nullish, so the two can never
 // be mistaken for each other, not even when the value itself is `null`.
-type OkOf<R> = R extends readonly [null, infer T] ? T : never;
-type ErrOf<R> = R extends readonly [infer E, unknown]
+/** @internal */
+export type OkOf<R> = R extends readonly [null, infer T] ? T : never;
+/** @internal */
+export type ErrOf<R> = R extends readonly [infer E, unknown]
   ? E extends null
     ? never
     : E
@@ -159,14 +183,45 @@ export type InferErr<R extends Inferable> = ErrOf<ResultOf<R>>;
 // The namespaces below group the exported functions under the type they work
 // with. Each one shares its name with that type, which a value can only do in
 // the module where the type is declared, so they live here next to the types.
+//
+// Result and ResultAsync are also callable, which wraps a result for method
+// chaining. They are functions with the namespace members attached, so a
+// member can never be named after a property every function already has:
+// name, length, call, apply, bind, toString or prototype.
 
 /**
- * The functions that create and unwrap a {@link Result}, grouped under the
- * type they work with.
+ * Wraps a {@link Result} for method chaining.
+ * @param result The result to wrap.
+ * @returns A {@link ResultChain}.
+ */
+function chainResult<T, E extends NotNullish<E>>(
+  result: Result<T, E>,
+): ResultChain<T, E> {
+  return new ResultChain(result);
+}
+
+/**
+ * Wraps a {@link Result}, or a {@link ResultAsync}, for asynchronous method
+ * chaining.
+ * @param result The result or async result to wrap.
+ * @returns A {@link ResultAsyncChain}, which can be awaited for the tuple.
+ */
+function chainResultAsync<T, E extends NotNullish<E>>(
+  result: Result<T, E> | ResultAsync<T, E>,
+): ResultAsyncChain<T, E> {
+  return new ResultAsyncChain(result);
+}
+
+/**
+ * Wraps a result for method chaining, and groups the functions that create,
+ * check and combine a {@link Result}.
  *
- * Every member is also exported on its own, so this is only a matter of
- * preference. The grouped names are shorter, since the type they belong to
- * says what they operate on.
+ * Call it with a result to get a {@link ResultChain}. Its methods transform
+ * the result, and `toResult`, `unwrapOr` or `match` end the chain.
+ *
+ * Every member is also exported on its own, so using the namespace is only a
+ * matter of preference. The grouped names are shorter, since the type they
+ * belong to says what they operate on.
  * @group Namespaces
  * @namespace
  * @example
@@ -174,27 +229,50 @@ export type InferErr<R extends Inferable> = ErrOf<ResultOf<R>>;
  * import { Result } from "evercatch";
  *
  * const [error, data] = Result.from(() => JSON.parse('{"foo": "bar"}'));
- * if (error) {
- *   console.error(error.message);
- * } else {
- *   console.log(data);
- * }
+ *
+ * const port = Result(parseNumber(raw)).unwrapOr(3000);
  * ```
  */
-export const Result = {
+export const Result = Object.assign(chainResult, {
   /** See {@link ok}. */
   ok,
   /** See {@link err}. */
   err,
+  /** See {@link isOk}. */
+  isOk,
+  /** See {@link isErr}. */
+  isErr,
   /** See {@link resultFrom}. */
   from: resultFrom,
-  /** See {@link unwrapOrThrow}. */
+  /** See {@link all}. */
+  all,
+  /** See {@link collect}. */
+  collect,
+  /** See {@link gen}. */
+  gen,
+  /** See {@link fromNullable}. */
+  fromNullable,
+  /** See {@link toNullable}. */
+  toNullable,
+  /**
+   * See {@link unwrapOrThrow}.
+   * @deprecated Use `Result(result).unwrapOrThrow()` instead, or the
+   * standalone {@link unwrapOrThrow}.
+   */
   unwrapOrThrow,
-  /** See {@link unwrapOr}. */
+  /**
+   * See {@link unwrapOr}.
+   * @deprecated Use `Result(result).unwrapOr(fallback)` instead, or the
+   * standalone {@link unwrapOr}.
+   */
   unwrapOr,
-  /** See {@link unwrapOrElse}. */
+  /**
+   * See {@link unwrapOrElse}.
+   * @deprecated Use `Result(result).unwrapOrElse(fn)` instead, or the
+   * standalone {@link unwrapOrElse}.
+   */
   unwrapOrElse,
-} as const;
+});
 
 /**
  * The functions that create a {@link ResultFn}, grouped under the type they
@@ -220,46 +298,88 @@ export const ResultFn = {
 } as const;
 
 /**
- * The functions that create and unwrap a {@link ResultAsync}, grouped under
- * the type they work with.
+ * Wraps an async result for method chaining, and groups the functions that
+ * create and combine a {@link ResultAsync}.
  *
- * Every member is also exported on its own, so this is only a matter of
- * preference. The grouped names are shorter, since the type they belong to
- * says what they operate on.
+ * Call it with a result or an async result to get a
+ * {@link ResultAsyncChain}. The chain is a promise of a result, so awaiting it
+ * gives back the tuple. The functions in this namespace return chains too,
+ * so they can be chained straight away.
+ *
+ * The standalone versions of these functions return plain promises.
  * @group Namespaces
  * @namespace
  * @example
  * ```typescript
  * import { ResultAsync } from "evercatch";
  *
- * const [error, data] = await ResultAsync.from(
- *   fetch("https://api.example.com/data").then((res) => res.json()),
- * );
- * if (error) {
- *   console.error(error.message);
- * } else {
- *   console.log(data);
- * }
+ * const [error, data] = await ResultAsync.from(fetch(url))
+ *   .andThen((response) => ResultAsync.from(response.json()))
+ *   .mapErr(() => "NETWORK_ERROR" as const);
+ *
+ * const [, email] = await ResultAsync(fetchUser(id)).map((user) => user.email);
  * ```
  */
-export const ResultAsync = {
-  /** See {@link fromPromise}. */
-  from: fromPromise,
-  /** See {@link unwrapAsyncOrThrow}. */
+export const ResultAsync = Object.assign(chainResultAsync, {
+  /** See {@link fromPromise}. Returns a {@link ResultAsyncChain}. */
+  from: <T, E extends NotNullish<E> = Error>(
+    promise: Promise<T>,
+    mapErr?: (err: unknown) => E,
+  ): ResultAsyncChain<T, E> =>
+    new ResultAsyncChain(fromPromise(promise, mapErr)),
+  /** See {@link allAsync}. Returns a {@link ResultAsyncChain}. */
+  all: <const R extends readonly MaybeAsyncResult[]>(
+    results: R,
+  ): ResultAsyncChain<OkValues<R>, ErrOf<Awaited<R[number]>>> =>
+    new ResultAsyncChain(allAsync(results)),
+  /** See {@link collectAsync}. Returns a {@link ResultAsyncChain}. */
+  collect: <const R extends readonly MaybeAsyncResult[]>(
+    results: R,
+  ): ResultAsyncChain<OkValues<R>, ErrOf<Awaited<R[number]>>[]> =>
+    new ResultAsyncChain(collectAsync(results)),
+  /** See {@link genAsync}. Returns a {@link ResultAsyncChain}. */
+  gen: <Y extends ResultErr<unknown>, T>(
+    fn: ($: UnwrapAsync) => AsyncGenerator<Y, T, unknown>,
+  ): ResultAsyncChain<T, ErrOf<Y>> => new ResultAsyncChain(genAsync(fn)),
+  /** See {@link retry}. Returns a {@link ResultAsyncChain}. */
+  retry: <T, E extends NotNullish<E>>(
+    fn: (attempt: number) => Result<T, E> | ResultAsync<T, E>,
+    options?: RetryOptions<E>,
+  ): ResultAsyncChain<T, E> => new ResultAsyncChain(retry(fn, options)),
+  /** See {@link withTimeout}. Returns a {@link ResultAsyncChain}. */
+  withTimeout: <T, E extends NotNullish<E> = Error>(
+    fn: (signal: AbortSignal) => Promise<T>,
+    ms: number,
+    mapErr?: (err: unknown) => E,
+  ): ResultAsyncChain<T, E | TimeoutError> =>
+    new ResultAsyncChain(withTimeout(fn, ms, mapErr)),
+  /**
+   * See {@link unwrapAsyncOrThrow}.
+   * @deprecated Use `ResultAsync(resultAsync).unwrapOrThrow()` instead, or
+   * the standalone {@link unwrapAsyncOrThrow}.
+   */
   unwrapOrThrow: unwrapAsyncOrThrow,
-  /** See {@link unwrapAsyncOr}. */
+  /**
+   * See {@link unwrapAsyncOr}.
+   * @deprecated Use `ResultAsync(resultAsync).unwrapOr(fallback)` instead, or
+   * the standalone {@link unwrapAsyncOr}.
+   */
   unwrapOr: unwrapAsyncOr,
-  /** See {@link unwrapAsyncOrElse}. */
+  /**
+   * See {@link unwrapAsyncOrElse}.
+   * @deprecated Use `ResultAsync(resultAsync).unwrapOrElse(fn)` instead, or
+   * the standalone {@link unwrapAsyncOrElse}.
+   */
   unwrapOrElse: unwrapAsyncOrElse,
-} as const;
+});
 
 /**
  * The functions that create a {@link ResultAsyncFn}, grouped under the type
  * they return.
  *
- * Every member is also exported on its own, so this is only a matter of
- * preference. The grouped names are shorter, since the type they belong to
- * says what they operate on.
+ * The wrapped function returns a {@link ResultAsyncChain}, so its result can
+ * be chained straight away. The standalone {@link fromAsyncThrowable} returns
+ * plain promises.
  * @group Namespaces
  * @namespace
  * @example
@@ -268,10 +388,24 @@ export const ResultAsync = {
  *
  * const safeFetch = ResultAsyncFn.from(fetch);
  *
- * const [error, response] = await safeFetch("https://api.example.com/data");
+ * const [error, data] = await safeFetch("https://api.example.com/data").map(
+ *   (response) => response.json(),
+ * );
  * ```
  */
 export const ResultAsyncFn = {
-  /** See {@link fromAsyncThrowable}. */
-  from: fromAsyncThrowable,
+  /** See {@link fromAsyncThrowable}. The wrapped function returns a {@link ResultAsyncChain}. */
+  from: <
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    F extends (...args: any[]) => Promise<any>,
+    E extends NotNullish<E> = Error,
+  >(
+    fn: F,
+    mapErr?: (err: unknown) => E,
+  ): ((
+    ...args: Parameters<F>
+  ) => ResultAsyncChain<Awaited<ReturnType<F>>, E>) => {
+    const safeFn = fromAsyncThrowable(fn, mapErr);
+    return (...args) => new ResultAsyncChain(safeFn(...args));
+  },
 } as const;

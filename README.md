@@ -55,7 +55,8 @@ can be falsy, check `error !== null` instead of `if (error)`.
 
 `Result` is both the type and a namespace holding the functions that work with
 it, so a single import gives you both. The same goes for `ResultAsync`,
-`ResultFn` and `ResultAsyncFn`.
+`ResultFn` and `ResultAsyncFn`. `Result` and `ResultAsync` can also be called
+with a result, to wrap it for [chaining](#chaining).
 
 ## Catching what throws
 
@@ -112,25 +113,26 @@ if (error === "TIMEOUT") {
 ## Unwrapping
 
 When you'd rather not handle the error at the call site, unwrap the result with
-a fallback — or throw after all.
+a fallback — or throw after all. Calling `Result` with a result wraps it in a
+chain, and the chain's unwrap methods give you the value.
 
 ```typescript
 import { Result } from "evercatch";
 import { divide } from "./divide";
 
-Result.unwrapOr(divide(10, 0), 0); // 0
-Result.unwrapOrElse(divide(10, 0), (error) => error.message.length); // computed
-Result.unwrapOrThrow(divide(10, 0)); // throws the error
+Result(divide(10, 0)).unwrapOr(0); // 0
+Result(divide(10, 0)).unwrapOrElse((error) => error.message.length); // computed
+Result(divide(10, 0)).unwrapOrThrow(); // throws the error
 ```
 
-`ResultAsync` has the same three, taking a `Promise` of a result and returning
-a promise:
+`ResultAsync` works the same way for a promise of a result, and returns a
+promise:
 
 ```typescript
 import { ResultAsync } from "evercatch";
 import { fallbackUser, fetchUserData } from "./user";
 
-await ResultAsync.unwrapOr(fetchUserData(), fallbackUser);
+await ResultAsync(fetchUserData()).unwrapOr(fallbackUser);
 ```
 
 ## Composing
@@ -155,6 +157,188 @@ async function fetchUserData(): ResultAsync<UserData, Error> {
 
   return await ResultAsync.from(response.json());
 }
+```
+
+## Chaining
+
+For a sequence of transforms, chaining can read better than returning early.
+Call `Result` with a result, chain the steps, and end with `toResult()` to get
+the tuple back, or with `unwrapOr` or `match` to get a value.
+
+```typescript
+import { Result } from "evercatch";
+import { parseConfig, validate } from "./config";
+
+const [error, port] = Result(parseConfig(raw))
+  .andThen(validate) // a step that can fail itself; the error types add up
+  .map((config) => config.port)
+  .toResult(); // error: ParseError | ValidationError | null
+
+const message = Result(divide(10, 2)).match({
+  ok: (value) => `Result: ${value}`,
+  err: (error) => `Failed: ${error.message}`,
+});
+```
+
+Async chains are where this shines. `ResultAsync(...)` takes a result or an
+async result, and the chain is itself a promise of a result, so awaiting it
+gives you the tuple. Callbacks can be sync or async, and can return results or
+async results.
+
+```typescript
+import { ResultAsync } from "evercatch";
+import { fetchUser, validateEmail } from "./user";
+
+const [error, email] = await ResultAsync(fetchUser(id))
+  .andThen((user) => validateEmail(user.email))
+  .map((email) => email.toLowerCase())
+  .mapErr((e) => ({ status: e._tag === "NotFound" ? 404 : 400 }));
+```
+
+Every function under the `ResultAsync` namespace, such as `ResultAsync.from`,
+returns a chain already, and so do functions wrapped with `ResultAsyncFn.from`:
+
+```typescript
+const [error, data] = await ResultAsync.from(fetch(url))
+  .andThen((response) => ResultAsync.from(response.json()))
+  .tapErr((error) => console.error(error))
+  .mapErr(() => "NETWORK_ERROR" as const);
+```
+
+A chain can be used anywhere a `ResultAsync` is expected, including as the
+return value of an `async` function. A sync chain continues asynchronously with
+`toAsync()`.
+
+| Method                                      | What it does                                             |
+| ------------------------------------------- | -------------------------------------------------------- |
+| `map`                                       | Transforms the value                                     |
+| `mapErr`                                    | Transforms the error                                     |
+| `andThen`                                   | Chains a step that returns a result                      |
+| `orElse`                                    | Recovers from an error with a step that returns a result |
+| `tap`, `tapErr`                             | Runs a side effect, such as logging, keeping the result  |
+| `match`                                     | Ends the chain, handling both outcomes                   |
+| `unwrapOr`, `unwrapOrElse`, `unwrapOrThrow` | Ends the chain with the value                            |
+| `toResult`                                  | Ends a sync chain with the tuple                         |
+| `toAsync`                                   | Continues a sync chain asynchronously                    |
+
+If you use ESLint's `new-cap` rule with `capIsNew`, add `Result` and
+`ResultAsync` to its `capIsNewExceptions`.
+
+## Combining
+
+`all` turns several results into one: every value, or the first error.
+Tuples keep their shape, so each value keeps its type. `collect` does the same,
+but gathers every error instead of stopping at the first, which suits
+validation.
+
+```typescript
+import { Result, ResultAsync } from "evercatch";
+
+const [error, values] = await ResultAsync.all([fetchUser(id), fetchPosts(id)]);
+if (!error) {
+  const [user, posts] = values; // [User, Post[]]
+}
+
+const [problems] = Result.collect([validateName(name), validateEmail(email)]);
+// problems: string[] | null
+```
+
+`ResultAsync.all` and `ResultAsync.collect` wait for every result concurrently,
+and take plain results too.
+
+## Generators
+
+`gen` removes the `if (error) return Result.err(error)` lines from a long
+sequence of steps. Inside the block, `yield* $(result)` gives you the value of
+an ok result, or stops the block and returns the error. The error type is the
+union of everything that can be yielded.
+
+```typescript
+import { ResultAsync } from "evercatch";
+import { auth, fetchUser } from "./user";
+
+const [error, profile] = await ResultAsync.gen(async function* ($) {
+  const session = yield* $(auth());
+  const user = yield* $(fetchUser(session.userId));
+  return user.profile;
+});
+```
+
+`Result.gen` is the sync version. `finally` blocks run when the block stops
+early. Thrown errors are not caught, so wrap code that might throw with
+`Result.from` or `ResultAsync.from` first.
+
+## Tagged errors
+
+`TaggedError` creates an Error base class with a literal `_tag`, so a union of
+errors can be narrowed with a `switch`, and TypeScript checks that every case
+is handled.
+
+```typescript
+import { TaggedError } from "evercatch";
+
+class NotFound extends TaggedError("NotFound") {}
+
+class Invalid extends TaggedError("Invalid") {
+  constructor(readonly field: string) {
+    super(`${field} is invalid`);
+  }
+}
+
+function describe(error: NotFound | Invalid) {
+  switch (error._tag) {
+    case "NotFound":
+      return "Not found";
+    case "Invalid":
+      return `Check ${error.field}`;
+  }
+}
+```
+
+## Retries and timeouts
+
+`ResultAsync.retry` calls a result-returning function until it succeeds, runs
+out of attempts or `shouldRetry` says no. `ResultAsync.withTimeout` gives an
+operation a time limit, aborting its signal and returning a `TimeoutError` when
+it runs over.
+
+```typescript
+import { ResultAsync, ResultAsyncFn, TimeoutError } from "evercatch";
+
+const safeFetch = ResultAsyncFn.from(fetch);
+
+const [error, response] = await ResultAsync.retry(
+  () => safeFetch("https://api.example.com/data"),
+  { attempts: 5, delay: (attempt) => 100 * 2 ** attempt },
+);
+
+const [timeoutError] = await ResultAsync.withTimeout(
+  (signal) => fetch("https://api.example.com/data", { signal }),
+  5000,
+);
+if (timeoutError instanceof TimeoutError) {
+  // ...
+}
+```
+
+## Nullable values and type guards
+
+`fromNullable` turns a possibly missing value into a result, and `toNullable`
+goes the other way.
+
+```typescript
+import { Result } from "evercatch";
+
+const [error, user] = Result.fromNullable(users.get(id), "NOT_FOUND" as const);
+const config = Result.toNullable(Result.from(() => JSON.parse(raw)));
+```
+
+`isOk` and `isErr` are type guards for when you're not destructuring, such as
+filtering a list of results:
+
+```typescript
+const values = results.filter(Result.isOk).map(([, value]) => value);
+const errors = results.filter(Result.isErr).map(([error]) => error);
 ```
 
 ## Inferring types
@@ -183,24 +367,53 @@ type `never`.
 
 ## Standalone exports
 
-Every namespace member is also exported on its own, under a longer name. They
-are the same functions, so this is mostly a matter of preference, but importing
-them individually lets your bundler drop the ones you don't use.
+Everything is also exported as a plain function, under a longer name. Importing
+them individually lets your bundler drop the ones you don't use, and suits a
+functional style where a chain would be one step too many.
 
-| Namespace                   | Standalone           |
-| --------------------------- | -------------------- |
-| `Result.ok`                 | `ok`                 |
-| `Result.err`                | `err`                |
-| `Result.from`               | `resultFrom`         |
-| `Result.unwrapOr`           | `unwrapOr`           |
-| `Result.unwrapOrElse`       | `unwrapOrElse`       |
-| `Result.unwrapOrThrow`      | `unwrapOrThrow`      |
-| `ResultAsync.from`          | `fromPromise`        |
-| `ResultAsync.unwrapOr`      | `unwrapAsyncOr`      |
-| `ResultAsync.unwrapOrElse`  | `unwrapAsyncOrElse`  |
-| `ResultAsync.unwrapOrThrow` | `unwrapAsyncOrThrow` |
-| `ResultFn.from`             | `fromThrowable`      |
-| `ResultAsyncFn.from`        | `fromAsyncThrowable` |
+Namespace members are the same functions as their standalone versions, except
+that the `ResultAsync` ones return chains, where the standalone ones return
+plain promises.
+
+| Namespace                 | Standalone           |
+| ------------------------- | -------------------- |
+| `Result.ok`               | `ok`                 |
+| `Result.err`              | `err`                |
+| `Result.isOk`             | `isOk`               |
+| `Result.isErr`            | `isErr`              |
+| `Result.from`             | `resultFrom`         |
+| `Result.all`              | `all`                |
+| `Result.collect`          | `collect`            |
+| `Result.gen`              | `gen`                |
+| `Result.fromNullable`     | `fromNullable`       |
+| `Result.toNullable`       | `toNullable`         |
+| `ResultAsync.from`        | `fromPromise`        |
+| `ResultAsync.all`         | `allAsync`           |
+| `ResultAsync.collect`     | `collectAsync`       |
+| `ResultAsync.gen`         | `genAsync`           |
+| `ResultAsync.retry`       | `retry`              |
+| `ResultAsync.withTimeout` | `withTimeout`        |
+| `ResultFn.from`           | `fromThrowable`      |
+| `ResultAsyncFn.from`      | `fromAsyncThrowable` |
+
+Each chain method has a standalone version that takes the result as its first
+argument:
+
+| Chain method    | Standalone      | Standalone async     |
+| --------------- | --------------- | -------------------- |
+| `map`           | `map`           | `mapAsync`           |
+| `mapErr`        | `mapErr`        | `mapErrAsync`        |
+| `andThen`       | `andThen`       | `andThenAsync`       |
+| `orElse`        | `orElse`        | `orElseAsync`        |
+| `tap`           | `tap`           | `tapAsync`           |
+| `tapErr`        | `tapErr`        | `tapErrAsync`        |
+| `match`         | `match`         | `matchAsync`         |
+| `unwrapOr`      | `unwrapOr`      | `unwrapAsyncOr`      |
+| `unwrapOrElse`  | `unwrapOrElse`  | `unwrapAsyncOrElse`  |
+| `unwrapOrThrow` | `unwrapOrThrow` | `unwrapAsyncOrThrow` |
+
+`Result.unwrapOr`, `Result.unwrapOrElse` and `Result.unwrapOrThrow`, and their
+`ResultAsync` versions, are deprecated in favour of the chain methods.
 
 ## Documentation
 

@@ -2,12 +2,13 @@ import { describe, expect, expectTypeOf, it, vi } from "vitest";
 
 import {
   fromAsyncThrowable,
-  fromPromise,
   unwrapAsyncOr,
   unwrapAsyncOrElse,
   unwrapAsyncOrThrow,
 } from "./async";
-import { err, ok } from "./shared";
+import { ResultAsyncChain, ResultChain } from "./chain";
+import { err, isErr, isOk, ok } from "./shared";
+import * as sync from "./sync";
 import {
   fromThrowable,
   resultFrom,
@@ -198,21 +199,30 @@ export type InferFromTuple = InferOk<readonly [string, number]>;
 
 describe("namespaces", () => {
   describe("Result", () => {
-    it("should group the functions that create and unwrap a Result", () => {
-      expect(Object.keys(Result)).toEqual([
-        "ok",
-        "err",
-        "from",
-        "unwrapOrThrow",
-        "unwrapOr",
-        "unwrapOrElse",
-      ]);
-      expect(Result.ok).toBe(ok);
-      expect(Result.err).toBe(err);
-      expect(Result.from).toBe(resultFrom);
-      expect(Result.unwrapOrThrow).toBe(unwrapOrThrow);
-      expect(Result.unwrapOr).toBe(unwrapOr);
-      expect(Result.unwrapOrElse).toBe(unwrapOrElse);
+    it("should group the Result functions under shorter names", () => {
+      expect({ ...Result }).toEqual({
+        ok,
+        err,
+        isOk,
+        isErr,
+        from: resultFrom,
+        all: sync.all,
+        collect: sync.collect,
+        gen: sync.gen,
+        fromNullable: sync.fromNullable,
+        toNullable: sync.toNullable,
+        unwrapOrThrow,
+        unwrapOr,
+        unwrapOrElse,
+      });
+    });
+
+    it("should wrap a result for chaining when called", () => {
+      const chain = Result(Result.ok(42));
+
+      expect(chain).toBeInstanceOf(ResultChain);
+      expectTypeOf(chain).toEqualTypeOf<ResultChain<number, never>>();
+      expect(chain.map((value) => value + 1).toResult()).toEqual([null, 43]);
     });
 
     it("should share its name with the type it groups", () => {
@@ -264,17 +274,68 @@ describe("namespaces", () => {
   });
 
   describe("ResultAsync", () => {
-    it("should group the functions that create and unwrap a ResultAsync", () => {
+    it("should group the ResultAsync functions under shorter names", () => {
       expect(Object.keys(ResultAsync)).toEqual([
         "from",
+        "all",
+        "collect",
+        "gen",
+        "retry",
+        "withTimeout",
         "unwrapOrThrow",
         "unwrapOr",
         "unwrapOrElse",
       ]);
-      expect(ResultAsync.from).toBe(fromPromise);
       expect(ResultAsync.unwrapOrThrow).toBe(unwrapAsyncOrThrow);
       expect(ResultAsync.unwrapOr).toBe(unwrapAsyncOr);
       expect(ResultAsync.unwrapOrElse).toBe(unwrapAsyncOrElse);
+    });
+
+    it("should wrap a result or async result for chaining when called", async () => {
+      const fromSync = ResultAsync(ok(42));
+      const fromAsync = ResultAsync(Promise.resolve(ok(42)));
+
+      expect(fromSync).toBeInstanceOf(ResultAsyncChain);
+      expect(fromAsync).toBeInstanceOf(ResultAsyncChain);
+      expectTypeOf(fromAsync).toEqualTypeOf<ResultAsyncChain<number, never>>();
+      await expect(fromSync.map((value) => value + 1)).resolves.toEqual([
+        null,
+        43,
+      ]);
+    });
+
+    it("should return chains from its functions", async () => {
+      const chains = [
+        ResultAsync.from(Promise.resolve(1)),
+        ResultAsync.all([ok(1)]),
+        ResultAsync.collect([ok(1)]),
+        ResultAsync.gen(async function* () {
+          return 1;
+        }),
+        ResultAsync.retry(() => ok(1)),
+        ResultAsync.withTimeout(async () => 1, 100),
+      ];
+
+      for (const chain of chains) {
+        expect(chain).toBeInstanceOf(ResultAsyncChain);
+      }
+      expect(await Promise.all(chains)).toEqual([
+        [null, 1],
+        [null, [1]],
+        [null, [1]],
+        [null, 1],
+        [null, 1],
+        [null, 1],
+      ]);
+    });
+
+    it("should pass the error mapper through", async () => {
+      const [error] = await ResultAsync.from(
+        Promise.reject(new Error("boom")),
+        () => "MAPPED" as const,
+      );
+
+      expect(error).toBe("MAPPED");
     });
 
     it("should share its name with the type it groups", async () => {
@@ -308,7 +369,22 @@ describe("namespaces", () => {
   describe("ResultAsyncFn", () => {
     it("should group the functions that create a ResultAsyncFn", () => {
       expect(Object.keys(ResultAsyncFn)).toEqual(["from"]);
-      expect(ResultAsyncFn.from).toBe(fromAsyncThrowable);
+    });
+
+    it("should wrap a function to return chains", async () => {
+      const mapErr = vi.fn(() => "MAPPED" as const);
+      const safe = ResultAsyncFn.from(async (value: number) => {
+        if (value < 0) throw new Error("negative");
+        return value * 2;
+      }, mapErr);
+
+      expect(safe(21)).toBeInstanceOf(ResultAsyncChain);
+      await expect(safe(21).map((value) => value + 1)).resolves.toEqual([
+        null,
+        43,
+      ]);
+      await expect(safe(-1)).resolves.toEqual(["MAPPED", null]);
+      expect(mapErr).toHaveBeenCalledWith(new Error("negative"));
     });
 
     it("should share its name with the type it groups", async () => {
