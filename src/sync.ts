@@ -1,5 +1,5 @@
-import { defaultErrorMapper, err, ok } from "./shared";
-import type { NotNullish, Result, ResultFn } from "./types";
+import { defaultMapErr, err, ok } from "./shared";
+import type { NonNullishError, Result, ResultFn } from "./types";
 
 /**
  * Safely executes a function, catching any errors.
@@ -11,7 +11,7 @@ import type { NotNullish, Result, ResultFn } from "./types";
  * @returns A Result containing either the function's return value or the caught error.
  * @example
  * ```typescript
- * const [error, data] = resultFrom(() => JSON.parse('{"foo": "bar"}'));
+ * const [error, data] = fromSync(() => JSON.parse('{"foo": "bar"}'));
  * if (error) {
  *   console.error(error.message);
  * } else {
@@ -19,9 +19,9 @@ import type { NotNullish, Result, ResultFn } from "./types";
  * }
  * ```
  */
-export function resultFrom<T, E extends NotNullish<E> = Error>(
+export function fromSync<T, E extends NonNullishError<E> = Error>(
   fn: () => T,
-  mapErr: (err: unknown) => E = defaultErrorMapper,
+  mapErr: (error: unknown) => E = defaultMapErr,
 ): Result<T, E> {
   try {
     return ok(fn());
@@ -53,10 +53,10 @@ export function resultFrom<T, E extends NotNullish<E> = Error>(
 export function fromThrowable<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   F extends (...args: any[]) => any,
-  E extends NotNullish<E> = Error,
->(fn: F, mapErr: (err: unknown) => E = defaultErrorMapper): ResultFn<F, E> {
+  E extends NonNullishError<E> = Error,
+>(fn: F, mapErr: (error: unknown) => E = defaultMapErr): ResultFn<F, E> {
   return (...args) => {
-    return resultFrom(() => fn(...args), mapErr);
+    return fromSync(() => fn(...args), mapErr);
   };
 }
 
@@ -75,7 +75,7 @@ export function fromThrowable<
  * console.log(value);
  * ```
  */
-export function unwrapOrThrow<T, E extends NotNullish<E> = Error>(
+export function unwrapOrThrow<T, E extends NonNullishError<E> = Error>(
   result: Result<T, E>,
 ): T {
   const [error, value] = result;
@@ -104,7 +104,7 @@ export function unwrapOrThrow<T, E extends NotNullish<E> = Error>(
  * console.log(value); // 0
  * ```
  */
-export function unwrapOr<T, E extends NotNullish<E> = Error>(
+export function unwrapOr<T, E extends NonNullishError<E> = Error>(
   result: Result<T, E>,
   fallback: T,
 ): T {
@@ -121,7 +121,7 @@ export function unwrapOr<T, E extends NotNullish<E> = Error>(
  * @template T The type of the value.
  * @template E The type of the error.
  * @param result The Result to unwrap.
- * @param fallbackFn A function that receives the error and returns a fallback value.
+ * @param getFallback A function that receives the error and returns a fallback value.
  * @returns The unwrapped value or the computed fallback.
  * @example
  * ```typescript
@@ -137,13 +137,13 @@ export function unwrapOr<T, E extends NotNullish<E> = Error>(
  * console.log(value); // 4
  * ```
  */
-export function unwrapOrElse<T, E extends NotNullish<E> = Error>(
+export function unwrapOrElse<T, E extends NonNullishError<E> = Error>(
   result: Result<T, E>,
-  fallbackFn: (err: E) => T,
+  getFallback: (error: E) => T,
 ): T {
   const [error, value] = result;
   if (error !== null) {
-    return fallbackFn(error);
+    return getFallback(error);
   }
   return value as T;
 }
@@ -151,11 +151,11 @@ export function unwrapOrElse<T, E extends NotNullish<E> = Error>(
 /**
  * Executes a function, returning a fallback value if it throws.
  *
- * Shorthand for `unwrapOr(resultFrom(fn), fallback)`, with an optional hook to
+ * Shorthand for `unwrapOr(fromSync(fn), fallback)`, with an optional hook to
  * observe the error, for logging or reporting, before it is discarded.
  *
  * Anything thrown that isn't an `Error` is wrapped in one, with the original
- * value kept as `cause`, just as {@link resultFrom} does.
+ * value kept as `cause`, just as {@link fromSync} does.
  * @group Sync
  * @template T The return type of the function.
  * @param fn The function to execute.
@@ -176,9 +176,9 @@ export function unwrapOrElse<T, E extends NotNullish<E> = Error>(
 export function tryOr<T>(
   fn: () => T,
   fallback: T,
-  tapErr?: (err: Error) => void,
+  tapErr?: (error: Error) => void,
 ): T {
-  return unwrapOrElse(resultFrom(fn), (error) => {
+  return unwrapOrElse(fromSync(fn), (error) => {
     tapErr?.(error);
     return fallback;
   });
@@ -187,14 +187,14 @@ export function tryOr<T>(
 /**
  * Executes a function, computing a fallback value from the error if it throws.
  *
- * Shorthand for `unwrapOrElse(resultFrom(fn), fallbackFn)`.
+ * Shorthand for `unwrapOrElse(fromSync(fn), getFallback)`.
  *
  * Anything thrown that isn't an `Error` is wrapped in one, with the original
- * value kept as `cause`, just as {@link resultFrom} does.
+ * value kept as `cause`, just as {@link fromSync} does.
  * @group Sync
  * @template T The return type of the function.
  * @param fn The function to execute.
- * @param fallbackFn A function that receives the error and returns a fallback value.
+ * @param getFallback A function that receives the error and returns a fallback value.
  * @returns The function's return value or the computed fallback.
  * @example
  * ```typescript
@@ -204,18 +204,18 @@ export function tryOr<T>(
  * );
  * ```
  */
-export function tryOrElse<T>(fn: () => T, fallbackFn: (err: Error) => T): T {
-  return unwrapOrElse(resultFrom(fn), fallbackFn);
+export function tryOrElse<T>(fn: () => T, getFallback: (error: Error) => T): T {
+  return unwrapOrElse(fromSync(fn), getFallback);
 }
 
 /**
  * Executes a function, rethrowing any error it throws through `mapErr`.
  *
- * Shorthand for `unwrapOrThrow(resultFrom(fn, mapErr))`. Useful for turning
+ * Shorthand for `unwrapOrThrow(fromSync(fn, mapErr))`. Useful for turning
  * whatever a function throws into an error of your own before it propagates.
  *
  * Without `mapErr`, anything thrown that isn't an `Error` is wrapped in one,
- * with the original value kept as `cause`, just as {@link resultFrom} does.
+ * with the original value kept as `cause`, just as {@link fromSync} does.
  * @group Sync
  * @template T The return type of the function.
  * @template E The type of the thrown error.
@@ -231,9 +231,9 @@ export function tryOrElse<T>(fn: () => T, fallbackFn: (err: Error) => T): T {
  * );
  * ```
  */
-export function tryOrThrow<T, E extends NotNullish<E> = Error>(
+export function tryOrThrow<T, E extends NonNullishError<E> = Error>(
   fn: () => T,
-  mapErr: (err: unknown) => E = defaultErrorMapper,
+  mapErr: (error: unknown) => E = defaultMapErr,
 ): T {
-  return unwrapOrThrow(resultFrom(fn, mapErr));
+  return unwrapOrThrow(fromSync(fn, mapErr));
 }

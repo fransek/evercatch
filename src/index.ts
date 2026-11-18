@@ -1,17 +1,25 @@
 export {
+  fromAsync,
   fromAsyncThrowable,
-  fromPromise,
-  tryPromiseOr,
-  tryPromiseOrElse,
-  tryPromiseOrThrow,
+  tryAsyncOr,
+  tryAsyncOrElse,
+  tryAsyncOrThrow,
   unwrapAsyncOr,
   unwrapAsyncOrElse,
   unwrapAsyncOrThrow,
 } from "./async";
+export {
+  fromPromise,
+  resultFrom,
+  tryPromiseOr,
+  tryPromiseOrElse,
+  tryPromiseOrThrow,
+} from "./deprecated";
+export type { NotNullish } from "./deprecated";
 export { err, ok } from "./shared";
 export {
+  fromSync,
   fromThrowable,
-  resultFrom,
   tryOr,
   tryOrElse,
   tryOrThrow,
@@ -24,7 +32,7 @@ export type {
   InferErr,
   InferOk,
   Inferable,
-  NotNullish,
+  NonNullishError,
   ResultErr,
   ResultOk,
 } from "./types";
