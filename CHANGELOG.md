@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.0](https://github.com/fransek/evercatch/compare/v0.12.1...v0.13.0) (2026-11-18)
+
+
+### Features
+
+* add tryOr, tryOrElse and tryOrThrow helpers ([#28](https://github.com/fransek/evercatch/issues/28)) ([696fdc9](https://github.com/fransek/evercatch/commit/696fdc9843a7a1581685ed972c960c5c94079c74))
+
 ## [0.12.1](https://github.com/fransek/evercatch/compare/v0.12.0...v0.12.1) (2026-11-05)
 
 
