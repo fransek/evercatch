@@ -1,6 +1,9 @@
 import {
   fromAsyncThrowable,
   fromPromise,
+  tryPromiseOr,
+  tryPromiseOrElse,
+  tryPromiseOrThrow,
   unwrapAsyncOr,
   unwrapAsyncOrElse,
   unwrapAsyncOrThrow,
@@ -9,6 +12,9 @@ import { err, ok } from "./shared";
 import {
   fromThrowable,
   resultFrom,
+  tryOr,
+  tryOrElse,
+  tryOrThrow,
   unwrapOr,
   unwrapOrElse,
   unwrapOrThrow,
@@ -194,6 +200,12 @@ export const Result = {
   unwrapOr,
   /** See {@link unwrapOrElse}. */
   unwrapOrElse,
+  /** See {@link tryOr}. */
+  tryOr,
+  /** See {@link tryOrElse}. */
+  tryOrElse,
+  /** See {@link tryOrThrow}. */
+  tryOrThrow,
 } as const;
 
 /**
@@ -251,6 +263,12 @@ export const ResultAsync = {
   unwrapOr: unwrapAsyncOr,
   /** See {@link unwrapAsyncOrElse}. */
   unwrapOrElse: unwrapAsyncOrElse,
+  /** See {@link tryPromiseOr}. */
+  tryOr: tryPromiseOr,
+  /** See {@link tryPromiseOrElse}. */
+  tryOrElse: tryPromiseOrElse,
+  /** See {@link tryPromiseOrThrow}. */
+  tryOrThrow: tryPromiseOrThrow,
 } as const;
 
 /**

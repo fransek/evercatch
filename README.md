@@ -133,6 +133,31 @@ import { fallbackUser, fetchUserData } from "./user";
 await ResultAsync.unwrapOr(fetchUserData(), fallbackUser);
 ```
 
+To catch and unwrap in one step, without a result in between, use the `try`
+functions. `tryOr` takes an optional third argument that sees the error before
+it is discarded, which is handy for logging, and `tryOrThrow` takes a `mapErr`
+to turn whatever was thrown into an error of your own before rethrowing it:
+
+```typescript
+import { Result, ResultAsync } from "evercatch";
+import { ConfigError } from "./errors";
+import { raw } from "./input";
+import { fetchUsers } from "./user";
+
+const config = Result.tryOr(
+  () => JSON.parse(raw),
+  {},
+  (error) => console.warn("Invalid config, using defaults", error),
+);
+
+const users = await ResultAsync.tryOrElse(fetchUsers(), () => []);
+
+const strictConfig = Result.tryOrThrow(
+  () => JSON.parse(raw),
+  (error) => new ConfigError("Invalid config", { cause: error }),
+);
+```
+
 ## Composing
 
 Results compose by returning early. Errors travel upward as values, so a
@@ -195,10 +220,16 @@ them individually lets your bundler drop the ones you don't use.
 | `Result.unwrapOr`           | `unwrapOr`           |
 | `Result.unwrapOrElse`       | `unwrapOrElse`       |
 | `Result.unwrapOrThrow`      | `unwrapOrThrow`      |
+| `Result.tryOr`              | `tryOr`              |
+| `Result.tryOrElse`          | `tryOrElse`          |
+| `Result.tryOrThrow`         | `tryOrThrow`         |
 | `ResultAsync.from`          | `fromPromise`        |
 | `ResultAsync.unwrapOr`      | `unwrapAsyncOr`      |
 | `ResultAsync.unwrapOrElse`  | `unwrapAsyncOrElse`  |
 | `ResultAsync.unwrapOrThrow` | `unwrapAsyncOrThrow` |
+| `ResultAsync.tryOr`         | `tryPromiseOr`       |
+| `ResultAsync.tryOrElse`     | `tryPromiseOrElse`   |
+| `ResultAsync.tryOrThrow`    | `tryPromiseOrThrow`  |
 | `ResultFn.from`             | `fromThrowable`      |
 | `ResultAsyncFn.from`        | `fromAsyncThrowable` |
 

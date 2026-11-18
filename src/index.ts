@@ -1,6 +1,9 @@
 export {
   fromAsyncThrowable,
   fromPromise,
+  tryPromiseOr,
+  tryPromiseOrElse,
+  tryPromiseOrThrow,
   unwrapAsyncOr,
   unwrapAsyncOrElse,
   unwrapAsyncOrThrow,
@@ -9,6 +12,9 @@ export { err, ok } from "./shared";
 export {
   fromThrowable,
   resultFrom,
+  tryOr,
+  tryOrElse,
+  tryOrThrow,
   unwrapOr,
   unwrapOrElse,
   unwrapOrThrow,

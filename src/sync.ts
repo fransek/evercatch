@@ -147,3 +147,93 @@ export function unwrapOrElse<T, E extends NotNullish<E> = Error>(
   }
   return value as T;
 }
+
+/**
+ * Executes a function, returning a fallback value if it throws.
+ *
+ * Shorthand for `unwrapOr(resultFrom(fn), fallback)`, with an optional hook to
+ * observe the error, for logging or reporting, before it is discarded.
+ *
+ * Anything thrown that isn't an `Error` is wrapped in one, with the original
+ * value kept as `cause`, just as {@link resultFrom} does.
+ * @group Sync
+ * @template T The return type of the function.
+ * @param fn The function to execute.
+ * @param fallback The value to return when the function throws.
+ * @param tapErr A function called with the error when the function throws.
+ * @returns The function's return value or the fallback.
+ * @example
+ * ```typescript
+ * const config = tryOr(() => JSON.parse(raw), {});
+ * ```
+ * @example
+ * ```typescript
+ * const config = tryOr(() => JSON.parse(raw), {}, (error) =>
+ *   console.warn("Invalid config, using defaults", error),
+ * );
+ * ```
+ */
+export function tryOr<T>(
+  fn: () => T,
+  fallback: T,
+  tapErr?: (err: Error) => void,
+): T {
+  return unwrapOrElse(resultFrom(fn), (error) => {
+    tapErr?.(error);
+    return fallback;
+  });
+}
+
+/**
+ * Executes a function, computing a fallback value from the error if it throws.
+ *
+ * Shorthand for `unwrapOrElse(resultFrom(fn), fallbackFn)`.
+ *
+ * Anything thrown that isn't an `Error` is wrapped in one, with the original
+ * value kept as `cause`, just as {@link resultFrom} does.
+ * @group Sync
+ * @template T The return type of the function.
+ * @param fn The function to execute.
+ * @param fallbackFn A function that receives the error and returns a fallback value.
+ * @returns The function's return value or the computed fallback.
+ * @example
+ * ```typescript
+ * const config = tryOrElse(
+ *   () => JSON.parse(raw),
+ *   (error) => ({ error: error.message }),
+ * );
+ * ```
+ */
+export function tryOrElse<T>(fn: () => T, fallbackFn: (err: Error) => T): T {
+  return unwrapOrElse(resultFrom(fn), fallbackFn);
+}
+
+/**
+ * Executes a function, rethrowing any error it throws through `mapErr`.
+ *
+ * Shorthand for `unwrapOrThrow(resultFrom(fn, mapErr))`. Useful for turning
+ * whatever a function throws into an error of your own before it propagates.
+ *
+ * Without `mapErr`, anything thrown that isn't an `Error` is wrapped in one,
+ * with the original value kept as `cause`, just as {@link resultFrom} does.
+ * @group Sync
+ * @template T The return type of the function.
+ * @template E The type of the thrown error.
+ * @param fn The function to execute.
+ * @param mapErr A function to map errors to a specific type before throwing.
+ * @returns The function's return value.
+ * @throws The mapped error if the function throws.
+ * @example
+ * ```typescript
+ * const config = tryOrThrow(
+ *   () => JSON.parse(raw),
+ *   (error) => new ConfigError("Invalid config", { cause: error }),
+ * );
+ * ```
+ */
+export function tryOrThrow<T, E extends NotNullish<E> = Error>(
+  fn: () => T,
+  mapErr: (err: unknown) => E = defaultErrorMapper,
+): T {
+  return unwrapOrThrow(resultFrom(fn, mapErr));
+}

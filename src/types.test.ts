@@ -3,6 +3,9 @@ import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import {
   fromAsyncThrowable,
   fromPromise,
+  tryPromiseOr,
+  tryPromiseOrElse,
+  tryPromiseOrThrow,
   unwrapAsyncOr,
   unwrapAsyncOrElse,
   unwrapAsyncOrThrow,
@@ -11,6 +14,9 @@ import { err, ok } from "./shared";
 import {
   fromThrowable,
   resultFrom,
+  tryOr,
+  tryOrElse,
+  tryOrThrow,
   unwrapOr,
   unwrapOrElse,
   unwrapOrThrow,
@@ -206,6 +212,9 @@ describe("namespaces", () => {
         "unwrapOrThrow",
         "unwrapOr",
         "unwrapOrElse",
+        "tryOr",
+        "tryOrElse",
+        "tryOrThrow",
       ]);
       expect(Result.ok).toBe(ok);
       expect(Result.err).toBe(err);
@@ -213,6 +222,9 @@ describe("namespaces", () => {
       expect(Result.unwrapOrThrow).toBe(unwrapOrThrow);
       expect(Result.unwrapOr).toBe(unwrapOr);
       expect(Result.unwrapOrElse).toBe(unwrapOrElse);
+      expect(Result.tryOr).toBe(tryOr);
+      expect(Result.tryOrElse).toBe(tryOrElse);
+      expect(Result.tryOrThrow).toBe(tryOrThrow);
     });
 
     it("should share its name with the type it groups", () => {
@@ -270,11 +282,17 @@ describe("namespaces", () => {
         "unwrapOrThrow",
         "unwrapOr",
         "unwrapOrElse",
+        "tryOr",
+        "tryOrElse",
+        "tryOrThrow",
       ]);
       expect(ResultAsync.from).toBe(fromPromise);
       expect(ResultAsync.unwrapOrThrow).toBe(unwrapAsyncOrThrow);
       expect(ResultAsync.unwrapOr).toBe(unwrapAsyncOr);
       expect(ResultAsync.unwrapOrElse).toBe(unwrapAsyncOrElse);
+      expect(ResultAsync.tryOr).toBe(tryPromiseOr);
+      expect(ResultAsync.tryOrElse).toBe(tryPromiseOrElse);
+      expect(ResultAsync.tryOrThrow).toBe(tryPromiseOrThrow);
     });
 
     it("should share its name with the type it groups", async () => {

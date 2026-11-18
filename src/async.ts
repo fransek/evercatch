@@ -148,3 +148,97 @@ export async function unwrapAsyncOrElse<T, E extends NotNullish<E> = Error>(
   const result = await resultAsync;
   return unwrapOrElse(result, fallbackFn);
 }
+
+/**
+ * Awaits a promise, returning a fallback value if it rejects.
+ *
+ * Shorthand for `unwrapAsyncOr(fromPromise(promise), fallback)`, with an
+ * optional hook to observe the error, for logging or reporting, before it is
+ * discarded.
+ *
+ * Anything rejected that isn't an `Error` is wrapped in one, with the original
+ * value kept as `cause`, just as {@link fromPromise} does.
+ * @group Async
+ * @template T The resolved type of the promise.
+ * @param promise The promise to await.
+ * @param fallback The value to return when the promise rejects.
+ * @param tapErr A function called with the error when the promise rejects.
+ * @returns A promise that resolves to the resolved value or the fallback.
+ * @example
+ * ```typescript
+ * const users = await tryPromiseOr(fetchUsers(), []);
+ * ```
+ * @example
+ * ```typescript
+ * const users = await tryPromiseOr(fetchUsers(), [], (error) =>
+ *   console.warn("Failed to fetch users", error),
+ * );
+ * ```
+ */
+export async function tryPromiseOr<T>(
+  promise: Promise<T>,
+  fallback: T,
+  tapErr?: (err: Error) => void,
+): Promise<T> {
+  return unwrapAsyncOrElse(fromPromise(promise), (error) => {
+    tapErr?.(error);
+    return fallback;
+  });
+}
+
+/**
+ * Awaits a promise, computing a fallback value from the error if it rejects.
+ *
+ * Shorthand for `unwrapAsyncOrElse(fromPromise(promise), fallbackFn)`.
+ *
+ * Anything rejected that isn't an `Error` is wrapped in one, with the original
+ * value kept as `cause`, just as {@link fromPromise} does.
+ * @group Async
+ * @template T The resolved type of the promise.
+ * @param promise The promise to await.
+ * @param fallbackFn A function that receives the error and returns a fallback value.
+ * @returns A promise that resolves to the resolved value or the computed fallback.
+ * @example
+ * ```typescript
+ * const users = await tryPromiseOrElse(fetchUsers(), (error) =>
+ *   error.name === "AbortError" ? [] : cachedUsers,
+ * );
+ * ```
+ */
+export async function tryPromiseOrElse<T>(
+  promise: Promise<T>,
+  fallbackFn: (err: Error) => T,
+): Promise<T> {
+  return unwrapAsyncOrElse(fromPromise(promise), fallbackFn);
+}
+
+/**
+ * Awaits a promise, rethrowing any rejection through `mapErr`.
+ *
+ * Shorthand for `unwrapAsyncOrThrow(fromPromise(promise, mapErr))`. Useful for
+ * turning whatever a promise rejects with into an error of your own before it
+ * propagates.
+ *
+ * Without `mapErr`, anything rejected that isn't an `Error` is wrapped in one,
+ * with the original value kept as `cause`, just as {@link fromPromise} does.
+ * @group Async
+ * @template T The resolved type of the promise.
+ * @template E The type of the thrown error.
+ * @param promise The promise to await.
+ * @param mapErr A function to map errors to a specific type before throwing.
+ * @returns A promise that resolves to the resolved value.
+ * @throws The mapped error if the promise rejects.
+ * @example
+ * ```typescript
+ * const users = await tryPromiseOrThrow(
+ *   fetchUsers(),
+ *   (error) => new ApiError("Failed to fetch users", { cause: error }),
+ * );
+ * ```
+ */
+export async function tryPromiseOrThrow<T, E extends NotNullish<E> = Error>(
+  promise: Promise<T>,
+  mapErr: (err: unknown) => E = defaultErrorMapper,
+): Promise<T> {
+  return unwrapAsyncOrThrow(fromPromise(promise, mapErr));
+}
