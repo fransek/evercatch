@@ -1,4 +1,4 @@
-import type { NotNullish, ResultErr, ResultOk } from "./types";
+import type { NonNullishError, ResultErr, ResultOk } from "./types";
 
 /**
  * Creates a successful result with the given value.
@@ -34,7 +34,7 @@ export function err(): ResultErr<Error>;
  *
  * The error cannot be nullish, since `null` in the error slot means "this
  * result is ok". Nullish arguments are rejected at compile time, and replaced
- * with a new Error at runtime as a last resort. See {@link NotNullish}.
+ * with a new Error at runtime as a last resort. See {@link NonNullishError}.
  *
  * Any other value is passed through as is, including falsy ones.
  * @group Core
@@ -54,12 +54,14 @@ export function err(): ResultErr<Error>;
  * const [error, value] = err(null); // Type error: null means "no error"
  * ```
  */
-export function err<E extends NotNullish<E>>(error: E): ResultErr<E>;
-export function err<E extends NotNullish<E> = Error>(error?: E): ResultErr<E> {
+export function err<E extends NonNullishError<E>>(error: E): ResultErr<E>;
+export function err<E extends NonNullishError<E> = Error>(
+  error?: E,
+): ResultErr<E> {
   return [error ?? (new Error() as E), null] as const;
 }
 
-export function defaultErrorMapper<E extends NotNullish<E> = Error>(
+export function defaultMapErr<E extends NonNullishError<E> = Error>(
   error: unknown,
 ): E {
   return (

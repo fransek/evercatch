@@ -1,17 +1,17 @@
 import {
-  fromAsyncThrowable,
-  fromPromise,
-  tryPromiseOr,
-  tryPromiseOrElse,
-  tryPromiseOrThrow,
-  unwrapAsyncOr,
-  unwrapAsyncOrElse,
-  unwrapAsyncOrThrow,
+  fromAsync,
+  fromThrowableAsync,
+  tryOrAsync,
+  tryOrElseAsync,
+  tryOrThrowAsync,
+  unwrapOrAsync,
+  unwrapOrElseAsync,
+  unwrapOrThrowAsync,
 } from "./async";
 import { err, ok } from "./shared";
 import {
+  fromSync,
   fromThrowable,
-  resultFrom,
   tryOr,
   tryOrElse,
   tryOrThrow,
@@ -22,6 +22,10 @@ import {
 
 /**
  * Constraint that rejects error types that could be nullish.
+ *
+ * It is not a transformation like `NonNullable`: it resolves to `unknown` for
+ * an acceptable error type and to `never` otherwise, so it is only meaningful
+ * as `E extends NonNullishError<E>`.
  *
  * `null` in the error slot means "this result is ok, there is no error", so an
  * error can never be `null`. `undefined` is rejected along with it, since it
@@ -36,7 +40,7 @@ import {
  * @template E The type of the error.
  * @example
  * ```typescript
- * function logError<E extends NotNullish<E>>(result: Result<unknown, E>) {
+ * function logError<E extends NonNullishError<E>>(result: Result<unknown, E>) {
  *   const [error] = result;
  *   if (error) {
  *     console.error(error);
@@ -44,7 +48,7 @@ import {
  * }
  * ```
  */
-export type NotNullish<E> = [Extract<E, null | undefined>] extends [never]
+export type NonNullishError<E> = [Extract<E, null | undefined>] extends [never]
   ? unknown
   : never;
 
@@ -58,21 +62,25 @@ export type ResultOk<T> = readonly [null, T];
  * Represents an error result containing an error.
  * @template E The type of the error. Cannot be nullish.
  */
-export type ResultErr<E extends NotNullish<E>> = readonly [E, null];
+export type ResultErr<E extends NonNullishError<E>> = readonly [E, null];
 
 /**
  * Represents a result that can be either successful or an error.
  * @template T The type of the value in case of success.
  * @template E The type of the error in case of failure. Cannot be nullish.
  */
-export type Result<T, E extends NotNullish<E>> = ResultOk<T> | ResultErr<E>;
+export type Result<T, E extends NonNullishError<E>> =
+  | ResultOk<T>
+  | ResultErr<E>;
 
 /**
  * Represents an asynchronous result that can be either successful or an error.
  * @template T The type of the value in case of success.
  * @template E The type of the error in case of failure. Cannot be nullish.
  */
-export type ResultAsync<T, E extends NotNullish<E>> = Promise<Result<T, E>>;
+export type ResultAsync<T, E extends NonNullishError<E>> = Promise<
+  Result<T, E>
+>;
 
 /**
  * Represents a function that returns a Result.
@@ -82,7 +90,7 @@ export type ResultAsync<T, E extends NotNullish<E>> = Promise<Result<T, E>>;
 export type ResultFn<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   F extends (...args: any[]) => any,
-  E extends NotNullish<E>,
+  E extends NonNullishError<E>,
 > = (...args: Parameters<F>) => Result<ReturnType<F>, E>;
 
 /**
@@ -93,7 +101,7 @@ export type ResultFn<
 export type ResultAsyncFn<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   F extends (...args: any[]) => Promise<any>,
-  E extends NotNullish<E>,
+  E extends NonNullishError<E>,
 > = (...args: Parameters<F>) => ResultAsync<Awaited<ReturnType<F>>, E>;
 
 /**
@@ -168,11 +176,12 @@ export type InferErr<R extends Inferable> = ErrOf<ResultOf<R>>;
 
 /**
  * The functions that create and unwrap a {@link Result}, grouped under the
- * type they work with.
+ * type they work with, along with the `try` functions that do both in one
+ * step.
  *
  * Every member is also exported on its own, so this is only a matter of
- * preference. The grouped names are shorter, since the type they belong to
- * says what they operate on.
+ * preference. Where a standalone name has to say what it works on, such as
+ * the `Async` suffix, the grouped name leaves that to the namespace.
  * @group Namespaces
  * @namespace
  * @example
@@ -192,8 +201,8 @@ export const Result = {
   ok,
   /** See {@link err}. */
   err,
-  /** See {@link resultFrom}. */
-  from: resultFrom,
+  /** See {@link fromSync}. */
+  from: fromSync,
   /** See {@link unwrapOrThrow}. */
   unwrapOrThrow,
   /** See {@link unwrapOr}. */
@@ -213,8 +222,8 @@ export const Result = {
  * return.
  *
  * Every member is also exported on its own, so this is only a matter of
- * preference. The grouped names are shorter, since the type they belong to
- * says what they operate on.
+ * preference. Where a standalone name has to say what it works on, such as
+ * the `Async` suffix, the grouped name leaves that to the namespace.
  * @group Namespaces
  * @namespace
  * @example
@@ -233,11 +242,12 @@ export const ResultFn = {
 
 /**
  * The functions that create and unwrap a {@link ResultAsync}, grouped under
- * the type they work with.
+ * the type they work with, along with the `try` functions that do both in one
+ * step.
  *
  * Every member is also exported on its own, so this is only a matter of
- * preference. The grouped names are shorter, since the type they belong to
- * says what they operate on.
+ * preference. Where a standalone name has to say what it works on, such as
+ * the `Async` suffix, the grouped name leaves that to the namespace.
  * @group Namespaces
  * @namespace
  * @example
@@ -255,20 +265,20 @@ export const ResultFn = {
  * ```
  */
 export const ResultAsync = {
-  /** See {@link fromPromise}. */
-  from: fromPromise,
-  /** See {@link unwrapAsyncOrThrow}. */
-  unwrapOrThrow: unwrapAsyncOrThrow,
-  /** See {@link unwrapAsyncOr}. */
-  unwrapOr: unwrapAsyncOr,
-  /** See {@link unwrapAsyncOrElse}. */
-  unwrapOrElse: unwrapAsyncOrElse,
-  /** See {@link tryPromiseOr}. */
-  tryOr: tryPromiseOr,
-  /** See {@link tryPromiseOrElse}. */
-  tryOrElse: tryPromiseOrElse,
-  /** See {@link tryPromiseOrThrow}. */
-  tryOrThrow: tryPromiseOrThrow,
+  /** See {@link fromAsync}. */
+  from: fromAsync,
+  /** See {@link unwrapOrThrowAsync}. */
+  unwrapOrThrow: unwrapOrThrowAsync,
+  /** See {@link unwrapOrAsync}. */
+  unwrapOr: unwrapOrAsync,
+  /** See {@link unwrapOrElseAsync}. */
+  unwrapOrElse: unwrapOrElseAsync,
+  /** See {@link tryOrAsync}. */
+  tryOr: tryOrAsync,
+  /** See {@link tryOrElseAsync}. */
+  tryOrElse: tryOrElseAsync,
+  /** See {@link tryOrThrowAsync}. */
+  tryOrThrow: tryOrThrowAsync,
 } as const;
 
 /**
@@ -276,8 +286,8 @@ export const ResultAsync = {
  * they return.
  *
  * Every member is also exported on its own, so this is only a matter of
- * preference. The grouped names are shorter, since the type they belong to
- * says what they operate on.
+ * preference. Where a standalone name has to say what it works on, such as
+ * the `Async` suffix, the grouped name leaves that to the namespace.
  * @group Namespaces
  * @namespace
  * @example
@@ -290,6 +300,6 @@ export const ResultAsync = {
  * ```
  */
 export const ResultAsyncFn = {
-  /** See {@link fromAsyncThrowable}. */
-  from: fromAsyncThrowable,
+  /** See {@link fromThrowableAsync}. */
+  from: fromThrowableAsync,
 } as const;

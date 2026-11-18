@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import { err, ok } from "./shared";
 import {
+  fromSync,
   fromThrowable,
-  resultFrom,
   tryOr,
   tryOrElse,
   tryOrThrow,
@@ -13,21 +13,21 @@ import {
 } from "./sync";
 
 describe("sync", () => {
-  describe("resultFrom", () => {
+  describe("fromSync", () => {
     it("should return ok result when function succeeds", () => {
-      expect(resultFrom(() => 42)).toEqual([null, 42]);
+      expect(fromSync(() => 42)).toEqual([null, 42]);
     });
 
     it("should return err result when function throws", () => {
       expect(
-        resultFrom(() => {
+        fromSync(() => {
           throw new Error("test error");
         }),
       ).toEqual([expect.any(Error), null]);
     });
 
     it("should handle non-Error throwables", () => {
-      const [error] = resultFrom(() => {
+      const [error] = fromSync(() => {
         throw { message: "test error" };
       });
 
@@ -38,7 +38,7 @@ describe("sync", () => {
     it("should use mapErr", () => {
       const mapErr = vi.fn((value: unknown) => new Error(String(value)));
 
-      const result = resultFrom(() => {
+      const result = fromSync(() => {
         throw "original";
       }, mapErr);
 
@@ -61,7 +61,7 @@ describe("sync", () => {
       expect(wrapped()).toEqual([expect.any(Error), null]);
     });
 
-    it("should pass mapErr to resultFrom", () => {
+    it("should pass mapErr to fromSync", () => {
       const mapErr = vi.fn((value: unknown) => new Error(String(value)));
       const wrapped = fromThrowable(() => {
         throw "test";
@@ -112,28 +112,28 @@ describe("sync", () => {
 
   describe("unwrapOrElse", () => {
     it("should return the value when result is ok without calling fallback", () => {
-      const fallbackFn = vi.fn(() => 0);
+      const getFallback = vi.fn(() => 0);
 
-      expect(unwrapOrElse(ok(42), fallbackFn)).toBe(42);
-      expect(fallbackFn).not.toHaveBeenCalled();
+      expect(unwrapOrElse(ok(42), getFallback)).toBe(42);
+      expect(getFallback).not.toHaveBeenCalled();
     });
 
     it("should return the computed fallback when result is err", () => {
       const error = new Error("test error");
-      const fallbackFn = vi.fn(
+      const getFallback = vi.fn(
         (receivedError: Error) => receivedError.message.length,
       );
 
-      expect(unwrapOrElse(err(error), fallbackFn)).toBe("test error".length);
-      expect(fallbackFn).toHaveBeenCalledWith(error);
+      expect(unwrapOrElse(err(error), getFallback)).toBe("test error".length);
+      expect(getFallback).toHaveBeenCalledWith(error);
     });
 
     it("should call the fallback with a falsy error", () => {
       for (const error of [0, "", false, 0n]) {
-        const fallbackFn = vi.fn(() => 1);
+        const getFallback = vi.fn(() => 1);
 
-        expect(unwrapOrElse(err(error), fallbackFn)).toBe(1);
-        expect(fallbackFn).toHaveBeenCalledWith(error);
+        expect(unwrapOrElse(err(error), getFallback)).toBe(1);
+        expect(getFallback).toHaveBeenCalledWith(error);
       }
     });
   });
@@ -188,22 +188,22 @@ describe("sync", () => {
 
   describe("tryOrElse", () => {
     it("should return the value when the function succeeds without calling fallback", () => {
-      const fallbackFn = vi.fn(() => 0);
+      const getFallback = vi.fn(() => 0);
 
-      expect(tryOrElse(() => 42, fallbackFn)).toBe(42);
-      expect(fallbackFn).not.toHaveBeenCalled();
+      expect(tryOrElse(() => 42, getFallback)).toBe(42);
+      expect(getFallback).not.toHaveBeenCalled();
     });
 
     it("should return the computed fallback when the function throws", () => {
       const error = new Error("Oops");
-      const fallbackFn = vi.fn((e: Error) => e.message.length);
+      const getFallback = vi.fn((e: Error) => e.message.length);
 
       expect(
         tryOrElse(() => {
           throw error;
-        }, fallbackFn),
+        }, getFallback),
       ).toBe(4);
-      expect(fallbackFn).toHaveBeenCalledWith(error);
+      expect(getFallback).toHaveBeenCalledWith(error);
     });
 
     it("should wrap non-Error throwables before calling fallback", () => {

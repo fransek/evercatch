@@ -1,19 +1,19 @@
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
 
 import {
-  fromAsyncThrowable,
-  fromPromise,
-  tryPromiseOr,
-  tryPromiseOrElse,
-  tryPromiseOrThrow,
-  unwrapAsyncOr,
-  unwrapAsyncOrElse,
-  unwrapAsyncOrThrow,
+  fromAsync,
+  fromThrowableAsync,
+  tryOrAsync,
+  tryOrElseAsync,
+  tryOrThrowAsync,
+  unwrapOrAsync,
+  unwrapOrElseAsync,
+  unwrapOrThrowAsync,
 } from "./async";
 import { err, ok } from "./shared";
 import {
+  fromSync,
   fromThrowable,
-  resultFrom,
   tryOr,
   tryOrElse,
   tryOrThrow,
@@ -24,7 +24,7 @@ import {
 import type {
   InferErr,
   InferOk,
-  NotNullish,
+  NonNullishError,
   ResultErr,
   ResultOk,
 } from "./types";
@@ -96,7 +96,7 @@ describe("types", () => {
   });
 
   it("should propagate the constraint to generic helpers", () => {
-    const firstError = <T, E extends NotNullish<E>>(
+    const firstError = <T, E extends NonNullishError<E>>(
       results: Result<T, E>[],
     ): E | null => {
       for (const [error] of results) {
@@ -166,7 +166,7 @@ describe("inference types", () => {
     const safeParse = fromThrowable((raw: string): { foo: string } =>
       JSON.parse(raw),
     );
-    const safeDouble = fromAsyncThrowable(
+    const safeDouble = fromThrowableAsync(
       async (value: number) => value * 2,
       (): FetchError => "NETWORK",
     );
@@ -218,7 +218,7 @@ describe("namespaces", () => {
       ]);
       expect(Result.ok).toBe(ok);
       expect(Result.err).toBe(err);
-      expect(Result.from).toBe(resultFrom);
+      expect(Result.from).toBe(fromSync);
       expect(Result.unwrapOrThrow).toBe(unwrapOrThrow);
       expect(Result.unwrapOr).toBe(unwrapOr);
       expect(Result.unwrapOrElse).toBe(unwrapOrElse);
@@ -286,13 +286,13 @@ describe("namespaces", () => {
         "tryOrElse",
         "tryOrThrow",
       ]);
-      expect(ResultAsync.from).toBe(fromPromise);
-      expect(ResultAsync.unwrapOrThrow).toBe(unwrapAsyncOrThrow);
-      expect(ResultAsync.unwrapOr).toBe(unwrapAsyncOr);
-      expect(ResultAsync.unwrapOrElse).toBe(unwrapAsyncOrElse);
-      expect(ResultAsync.tryOr).toBe(tryPromiseOr);
-      expect(ResultAsync.tryOrElse).toBe(tryPromiseOrElse);
-      expect(ResultAsync.tryOrThrow).toBe(tryPromiseOrThrow);
+      expect(ResultAsync.from).toBe(fromAsync);
+      expect(ResultAsync.unwrapOrThrow).toBe(unwrapOrThrowAsync);
+      expect(ResultAsync.unwrapOr).toBe(unwrapOrAsync);
+      expect(ResultAsync.unwrapOrElse).toBe(unwrapOrElseAsync);
+      expect(ResultAsync.tryOr).toBe(tryOrAsync);
+      expect(ResultAsync.tryOrElse).toBe(tryOrElseAsync);
+      expect(ResultAsync.tryOrThrow).toBe(tryOrThrowAsync);
     });
 
     it("should share its name with the type it groups", async () => {
@@ -326,7 +326,7 @@ describe("namespaces", () => {
   describe("ResultAsyncFn", () => {
     it("should group the functions that create a ResultAsyncFn", () => {
       expect(Object.keys(ResultAsyncFn)).toEqual(["from"]);
-      expect(ResultAsyncFn.from).toBe(fromAsyncThrowable);
+      expect(ResultAsyncFn.from).toBe(fromThrowableAsync);
     });
 
     it("should share its name with the type it groups", async () => {
