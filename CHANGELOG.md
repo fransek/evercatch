@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.0](https://github.com/fransek/evercatch/compare/v0.13.0...v0.14.0) (2026-11-18)
+
+
+### Features
+
+* give standalone exports one naming scheme ([#30](https://github.com/fransek/evercatch/issues/30)) ([4945eec](https://github.com/fransek/evercatch/commit/4945eece6dbf4eac108d1f4af847cecf7555755b))
+
 ## [0.13.0](https://github.com/fransek/evercatch/compare/v0.12.1...v0.13.0) (2026-11-18)
 
 
