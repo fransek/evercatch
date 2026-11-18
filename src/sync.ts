@@ -147,3 +147,66 @@ export function unwrapOrElse<T, E extends NotNullish<E> = Error>(
   }
   return value as T;
 }
+
+/**
+ * Executes a function, returning a fallback value if it throws.
+ *
+ * Shorthand for `unwrapOr(resultFrom(fn), fallback)`, with an optional hook to
+ * observe the error, for logging or reporting, before it is discarded.
+ *
+ * Anything thrown that isn't an `Error` is wrapped in one, with the original
+ * value kept as `cause`, just as {@link resultFrom} does.
+ * @group Sync
+ * @template T The return type of the function.
+ * @param fn The function to execute.
+ * @param fallback The value to return when the function throws.
+ * @param tapErr A function called with the error when the function throws.
+ * @returns The function's return value or the fallback.
+ * @example
+ * ```typescript
+ * const config = unwrapFromOr(() => JSON.parse(raw), {});
+ * ```
+ * @example
+ * ```typescript
+ * const config = unwrapFromOr(() => JSON.parse(raw), {}, (error) =>
+ *   console.warn("Invalid config, using defaults", error),
+ * );
+ * ```
+ */
+export function unwrapFromOr<T>(
+  fn: () => T,
+  fallback: T,
+  tapErr?: (err: Error) => void,
+): T {
+  return unwrapOrElse(resultFrom(fn), (error) => {
+    tapErr?.(error);
+    return fallback;
+  });
+}
+
+/**
+ * Executes a function, computing a fallback value from the error if it throws.
+ *
+ * Shorthand for `unwrapOrElse(resultFrom(fn), fallbackFn)`.
+ *
+ * Anything thrown that isn't an `Error` is wrapped in one, with the original
+ * value kept as `cause`, just as {@link resultFrom} does.
+ * @group Sync
+ * @template T The return type of the function.
+ * @param fn The function to execute.
+ * @param fallbackFn A function that receives the error and returns a fallback value.
+ * @returns The function's return value or the computed fallback.
+ * @example
+ * ```typescript
+ * const config = unwrapFromOrElse(
+ *   () => JSON.parse(raw),
+ *   (error) => ({ error: error.message }),
+ * );
+ * ```
+ */
+export function unwrapFromOrElse<T>(
+  fn: () => T,
+  fallbackFn: (err: Error) => T,
+): T {
+  return unwrapOrElse(resultFrom(fn), fallbackFn);
+}

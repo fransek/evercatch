@@ -6,6 +6,8 @@ import {
   unwrapAsyncOr,
   unwrapAsyncOrElse,
   unwrapAsyncOrThrow,
+  unwrapPromiseOr,
+  unwrapPromiseOrElse,
 } from "./async";
 import { err, ok } from "./shared";
 
@@ -133,6 +135,63 @@ describe("async", () => {
         ).resolves.toBe(1);
         expect(fallbackFn).toHaveBeenCalledWith(error);
       }
+    });
+  });
+
+  describe("unwrapPromiseOr", () => {
+    it("should return the value when the promise resolves", async () => {
+      const tapErr = vi.fn();
+
+      await expect(
+        unwrapPromiseOr(Promise.resolve(42), 0, tapErr),
+      ).resolves.toBe(42);
+      expect(tapErr).not.toHaveBeenCalled();
+    });
+
+    it("should return the fallback when the promise rejects", async () => {
+      await expect(
+        unwrapPromiseOr(Promise.reject(new Error("test")), 0),
+      ).resolves.toBe(0);
+    });
+
+    it("should call tapErr with the error when the promise rejects", async () => {
+      const error = new Error("test");
+      const tapErr = vi.fn();
+
+      await unwrapPromiseOr(Promise.reject(error), 0, tapErr);
+
+      expect(tapErr).toHaveBeenCalledWith(error);
+    });
+
+    it("should wrap non-Error rejections before calling tapErr", async () => {
+      const tapErr = vi.fn();
+
+      await unwrapPromiseOr(Promise.reject("original"), 0, tapErr);
+
+      const [error] = tapErr.mock.calls[0];
+      expect(error).toBeInstanceOf(Error);
+      expect(error.cause).toBe("original");
+    });
+  });
+
+  describe("unwrapPromiseOrElse", () => {
+    it("should return the value when the promise resolves without calling fallback", async () => {
+      const fallbackFn = vi.fn(() => 0);
+
+      await expect(
+        unwrapPromiseOrElse(Promise.resolve(42), fallbackFn),
+      ).resolves.toBe(42);
+      expect(fallbackFn).not.toHaveBeenCalled();
+    });
+
+    it("should return the computed fallback when the promise rejects", async () => {
+      const error = new Error("Oops");
+      const fallbackFn = vi.fn((e: Error) => e.message.length);
+
+      await expect(
+        unwrapPromiseOrElse(Promise.reject(error), fallbackFn),
+      ).resolves.toBe(4);
+      expect(fallbackFn).toHaveBeenCalledWith(error);
     });
   });
 });

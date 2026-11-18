@@ -133,6 +133,25 @@ import { fallbackUser, fetchUserData } from "./user";
 await ResultAsync.unwrapOr(fetchUserData(), fallbackUser);
 ```
 
+To catch and unwrap in one step, without a result in between, use
+`unwrapFromOr` and `unwrapFromOrElse`. The optional third argument of
+`unwrapFromOr` sees the error before it is discarded, which is handy for
+logging:
+
+```typescript
+import { Result, ResultAsync } from "evercatch";
+import { fetchUsers } from "./user";
+import { raw } from "./input";
+
+const config = Result.unwrapFromOr(
+  () => JSON.parse(raw),
+  {},
+  (error) => console.warn("Invalid config, using defaults", error),
+);
+
+const users = await ResultAsync.unwrapFromOrElse(fetchUsers(), () => []);
+```
+
 ## Composing
 
 Results compose by returning early. Errors travel upward as values, so a
@@ -187,20 +206,24 @@ Every namespace member is also exported on its own, under a longer name. They
 are the same functions, so this is mostly a matter of preference, but importing
 them individually lets your bundler drop the ones you don't use.
 
-| Namespace                   | Standalone           |
-| --------------------------- | -------------------- |
-| `Result.ok`                 | `ok`                 |
-| `Result.err`                | `err`                |
-| `Result.from`               | `resultFrom`         |
-| `Result.unwrapOr`           | `unwrapOr`           |
-| `Result.unwrapOrElse`       | `unwrapOrElse`       |
-| `Result.unwrapOrThrow`      | `unwrapOrThrow`      |
-| `ResultAsync.from`          | `fromPromise`        |
-| `ResultAsync.unwrapOr`      | `unwrapAsyncOr`      |
-| `ResultAsync.unwrapOrElse`  | `unwrapAsyncOrElse`  |
-| `ResultAsync.unwrapOrThrow` | `unwrapAsyncOrThrow` |
-| `ResultFn.from`             | `fromThrowable`      |
-| `ResultAsyncFn.from`        | `fromAsyncThrowable` |
+| Namespace                      | Standalone            |
+| ------------------------------ | --------------------- |
+| `Result.ok`                    | `ok`                  |
+| `Result.err`                   | `err`                 |
+| `Result.from`                  | `resultFrom`          |
+| `Result.unwrapOr`              | `unwrapOr`            |
+| `Result.unwrapOrElse`          | `unwrapOrElse`        |
+| `Result.unwrapOrThrow`         | `unwrapOrThrow`       |
+| `Result.unwrapFromOr`          | `unwrapFromOr`        |
+| `Result.unwrapFromOrElse`      | `unwrapFromOrElse`    |
+| `ResultAsync.from`             | `fromPromise`         |
+| `ResultAsync.unwrapOr`         | `unwrapAsyncOr`       |
+| `ResultAsync.unwrapOrElse`     | `unwrapAsyncOrElse`   |
+| `ResultAsync.unwrapOrThrow`    | `unwrapAsyncOrThrow`  |
+| `ResultAsync.unwrapFromOr`     | `unwrapPromiseOr`     |
+| `ResultAsync.unwrapFromOrElse` | `unwrapPromiseOrElse` |
+| `ResultFn.from`                | `fromThrowable`       |
+| `ResultAsyncFn.from`           | `fromAsyncThrowable`  |
 
 ## Documentation
 

@@ -4,11 +4,15 @@ export {
   unwrapAsyncOr,
   unwrapAsyncOrElse,
   unwrapAsyncOrThrow,
+  unwrapPromiseOr,
+  unwrapPromiseOrElse,
 } from "./async";
 export { err, ok } from "./shared";
 export {
   fromThrowable,
   resultFrom,
+  unwrapFromOr,
+  unwrapFromOrElse,
   unwrapOr,
   unwrapOrElse,
   unwrapOrThrow,

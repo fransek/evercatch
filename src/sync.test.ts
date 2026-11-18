@@ -4,6 +4,8 @@ import { err, ok } from "./shared";
 import {
   fromThrowable,
   resultFrom,
+  unwrapFromOr,
+  unwrapFromOrElse,
   unwrapOr,
   unwrapOrElse,
   unwrapOrThrow,
@@ -132,6 +134,86 @@ describe("sync", () => {
         expect(unwrapOrElse(err(error), fallbackFn)).toBe(1);
         expect(fallbackFn).toHaveBeenCalledWith(error);
       }
+    });
+  });
+
+  describe("unwrapFromOr", () => {
+    it("should return the value when the function succeeds", () => {
+      const tapErr = vi.fn();
+
+      expect(unwrapFromOr(() => 42, 0, tapErr)).toBe(42);
+      expect(tapErr).not.toHaveBeenCalled();
+    });
+
+    it("should return the fallback when the function throws", () => {
+      expect(
+        unwrapFromOr(() => {
+          throw new Error("test");
+        }, 0),
+      ).toBe(0);
+    });
+
+    it("should call tapErr with the error when the function throws", () => {
+      const error = new Error("test");
+      const tapErr = vi.fn();
+
+      unwrapFromOr(
+        () => {
+          throw error;
+        },
+        0,
+        tapErr,
+      );
+
+      expect(tapErr).toHaveBeenCalledWith(error);
+    });
+
+    it("should wrap non-Error throwables before calling tapErr", () => {
+      const tapErr = vi.fn();
+
+      unwrapFromOr(
+        () => {
+          throw "original";
+        },
+        0,
+        tapErr,
+      );
+
+      const [error] = tapErr.mock.calls[0];
+      expect(error).toBeInstanceOf(Error);
+      expect(error.cause).toBe("original");
+    });
+  });
+
+  describe("unwrapFromOrElse", () => {
+    it("should return the value when the function succeeds without calling fallback", () => {
+      const fallbackFn = vi.fn(() => 0);
+
+      expect(unwrapFromOrElse(() => 42, fallbackFn)).toBe(42);
+      expect(fallbackFn).not.toHaveBeenCalled();
+    });
+
+    it("should return the computed fallback when the function throws", () => {
+      const error = new Error("Oops");
+      const fallbackFn = vi.fn((e: Error) => e.message.length);
+
+      expect(
+        unwrapFromOrElse(() => {
+          throw error;
+        }, fallbackFn),
+      ).toBe(4);
+      expect(fallbackFn).toHaveBeenCalledWith(error);
+    });
+
+    it("should wrap non-Error throwables before calling fallback", () => {
+      const value = unwrapFromOrElse(
+        () => {
+          throw "original";
+        },
+        (e) => String(e.cause),
+      );
+
+      expect(value).toBe("original");
     });
   });
 });
