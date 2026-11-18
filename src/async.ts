@@ -43,7 +43,7 @@ export async function fromAsync<T, E extends NonNullishError<E> = Error>(
  * @returns An async function that returns a ResultAsync.
  * @example
  * ```typescript
- * const safeFetch = fromThrowableAsync(fetch);
+ * const safeFetch = fromAsyncThrowable(fetch);
  *
  * const [error, response] = await safeFetch("https://api.example.com/data");
  * if (error) {
@@ -54,7 +54,7 @@ export async function fromAsync<T, E extends NonNullishError<E> = Error>(
  * }
  * ```
  */
-export function fromThrowableAsync<
+export function fromAsyncThrowable<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   F extends (...args: any[]) => Promise<any>,
   E extends NonNullishError<E> = Error,
@@ -75,11 +75,11 @@ export function fromThrowableAsync<
  * @example
  * ```typescript
  * const result = someAsyncFunctionThatReturnsResult();
- * const value = await unwrapOrThrowAsync(result);
+ * const value = await unwrapAsyncOrThrow(result);
  * console.log(value);
  * ```
  */
-export async function unwrapOrThrowAsync<
+export async function unwrapAsyncOrThrow<
   T,
   E extends NonNullishError<E> = Error,
 >(resultAsync: ResultAsync<T, E>): Promise<T> {
@@ -97,19 +97,19 @@ export async function unwrapOrThrowAsync<
  * @returns A promise that resolves to the unwrapped value or the fallback.
  * @example
  * ```typescript
- * const value = await unwrapOrAsync(Promise.resolve(ok(42)), 0);
+ * const value = await unwrapAsyncOr(Promise.resolve(ok(42)), 0);
  * console.log(value); // 42
  * ```
  * @example
  * ```typescript
- * const value = await unwrapOrAsync(
+ * const value = await unwrapAsyncOr(
  *   Promise.resolve(err(new Error("Oops"))),
  *   0,
  * );
  * console.log(value); // 0
  * ```
  */
-export async function unwrapOrAsync<T, E extends NonNullishError<E> = Error>(
+export async function unwrapAsyncOr<T, E extends NonNullishError<E> = Error>(
   resultAsync: ResultAsync<T, E>,
   fallback: T,
 ): Promise<T> {
@@ -127,19 +127,19 @@ export async function unwrapOrAsync<T, E extends NonNullishError<E> = Error>(
  * @returns A promise that resolves to the unwrapped value or the computed fallback.
  * @example
  * ```typescript
- * const value = await unwrapOrElseAsync(Promise.resolve(ok(42)), () => 0);
+ * const value = await unwrapAsyncOrElse(Promise.resolve(ok(42)), () => 0);
  * console.log(value); // 42
  * ```
  * @example
  * ```typescript
- * const value = await unwrapOrElseAsync(
+ * const value = await unwrapAsyncOrElse(
  *   Promise.resolve(err(new Error("Oops"))),
  *   (error) => error.message.length,
  * );
  * console.log(value); // 4
  * ```
  */
-export async function unwrapOrElseAsync<
+export async function unwrapAsyncOrElse<
   T,
   E extends NonNullishError<E> = Error,
 >(resultAsync: ResultAsync<T, E>, getFallback: (error: E) => T): Promise<T> {
@@ -150,7 +150,7 @@ export async function unwrapOrElseAsync<
 /**
  * Awaits a promise, returning a fallback value if it rejects.
  *
- * Shorthand for `unwrapOrAsync(fromAsync(promise), fallback)`, with an
+ * Shorthand for `unwrapAsyncOr(fromAsync(promise), fallback)`, with an
  * optional hook to observe the error, for logging or reporting, before it is
  * discarded.
  *
@@ -164,21 +164,21 @@ export async function unwrapOrElseAsync<
  * @returns A promise that resolves to the resolved value or the fallback.
  * @example
  * ```typescript
- * const users = await tryOrAsync(fetchUsers(), []);
+ * const users = await tryAsyncOr(fetchUsers(), []);
  * ```
  * @example
  * ```typescript
- * const users = await tryOrAsync(fetchUsers(), [], (error) =>
+ * const users = await tryAsyncOr(fetchUsers(), [], (error) =>
  *   console.warn("Failed to fetch users", error),
  * );
  * ```
  */
-export async function tryOrAsync<T>(
+export async function tryAsyncOr<T>(
   promise: Promise<T>,
   fallback: T,
   tapErr?: (error: Error) => void,
 ): Promise<T> {
-  return unwrapOrElseAsync(fromAsync(promise), (error) => {
+  return unwrapAsyncOrElse(fromAsync(promise), (error) => {
     tapErr?.(error);
     return fallback;
   });
@@ -187,7 +187,7 @@ export async function tryOrAsync<T>(
 /**
  * Awaits a promise, computing a fallback value from the error if it rejects.
  *
- * Shorthand for `unwrapOrElseAsync(fromAsync(promise), getFallback)`.
+ * Shorthand for `unwrapAsyncOrElse(fromAsync(promise), getFallback)`.
  *
  * Anything rejected that isn't an `Error` is wrapped in one, with the original
  * value kept as `cause`, just as {@link fromAsync} does.
@@ -198,22 +198,22 @@ export async function tryOrAsync<T>(
  * @returns A promise that resolves to the resolved value or the computed fallback.
  * @example
  * ```typescript
- * const users = await tryOrElseAsync(fetchUsers(), (error) =>
+ * const users = await tryAsyncOrElse(fetchUsers(), (error) =>
  *   error.name === "AbortError" ? [] : cachedUsers,
  * );
  * ```
  */
-export async function tryOrElseAsync<T>(
+export async function tryAsyncOrElse<T>(
   promise: Promise<T>,
   getFallback: (error: Error) => T,
 ): Promise<T> {
-  return unwrapOrElseAsync(fromAsync(promise), getFallback);
+  return unwrapAsyncOrElse(fromAsync(promise), getFallback);
 }
 
 /**
  * Awaits a promise, rethrowing any rejection through `mapErr`.
  *
- * Shorthand for `unwrapOrThrowAsync(fromAsync(promise, mapErr))`. Useful for
+ * Shorthand for `unwrapAsyncOrThrow(fromAsync(promise, mapErr))`. Useful for
  * turning whatever a promise rejects with into an error of your own before it
  * propagates.
  *
@@ -228,15 +228,15 @@ export async function tryOrElseAsync<T>(
  * @throws The mapped error if the promise rejects.
  * @example
  * ```typescript
- * const users = await tryOrThrowAsync(
+ * const users = await tryAsyncOrThrow(
  *   fetchUsers(),
  *   (error) => new ApiError("Failed to fetch users", { cause: error }),
  * );
  * ```
  */
-export async function tryOrThrowAsync<T, E extends NonNullishError<E> = Error>(
+export async function tryAsyncOrThrow<T, E extends NonNullishError<E> = Error>(
   promise: Promise<T>,
   mapErr: (error: unknown) => E = defaultMapErr,
 ): Promise<T> {
-  return unwrapOrThrowAsync(fromAsync(promise, mapErr));
+  return unwrapAsyncOrThrow(fromAsync(promise, mapErr));
 }

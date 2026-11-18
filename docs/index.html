@@ -74,7 +74,8 @@ type <code>never</code>.</p>
 <h2 id="standalone-exports" class="tsd-anchor-link">Standalone exports<a href="#standalone-exports" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><p>Every namespace member is also exported on its own. They are the same
 functions, so this is mostly a matter of preference, but importing them
 individually lets your bundler drop the ones you don't use. Standalone names
-that work on promises end in <code>Async</code>, since there is no namespace to say so.</p>
+that work on promises have <code>Async</code> right after the verb, as in <code>unwrapAsyncOr</code>,
+since there is no namespace to say so.</p>
 <table>
 <thead>
 <tr>
@@ -125,27 +126,27 @@ that work on promises end in <code>Async</code>, since there is no namespace to 
 </tr>
 <tr>
 <td><code>ResultAsync.unwrapOr</code></td>
-<td><code>unwrapOrAsync</code></td>
+<td><code>unwrapAsyncOr</code></td>
 </tr>
 <tr>
 <td><code>ResultAsync.unwrapOrElse</code></td>
-<td><code>unwrapOrElseAsync</code></td>
+<td><code>unwrapAsyncOrElse</code></td>
 </tr>
 <tr>
 <td><code>ResultAsync.unwrapOrThrow</code></td>
-<td><code>unwrapOrThrowAsync</code></td>
+<td><code>unwrapAsyncOrThrow</code></td>
 </tr>
 <tr>
 <td><code>ResultAsync.tryOr</code></td>
-<td><code>tryOrAsync</code></td>
+<td><code>tryAsyncOr</code></td>
 </tr>
 <tr>
 <td><code>ResultAsync.tryOrElse</code></td>
-<td><code>tryOrElseAsync</code></td>
+<td><code>tryAsyncOrElse</code></td>
 </tr>
 <tr>
 <td><code>ResultAsync.tryOrThrow</code></td>
-<td><code>tryOrThrowAsync</code></td>
+<td><code>tryAsyncOrThrow</code></td>
 </tr>
 <tr>
 <td><code>ResultFn.from</code></td>
@@ -153,7 +154,7 @@ that work on promises end in <code>Async</code>, since there is no namespace to 
 </tr>
 <tr>
 <td><code>ResultAsyncFn.from</code></td>
-<td><code>fromThrowableAsync</code></td>
+<td><code>fromAsyncThrowable</code></td>
 </tr>
 </tbody>
 </table>

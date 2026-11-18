@@ -9,13 +9,9 @@ describe("deprecated aliases", () => {
   it.each([
     ["resultFrom", syncFns.fromSync],
     ["fromPromise", asyncFns.fromAsync],
-    ["fromAsyncThrowable", asyncFns.fromThrowableAsync],
-    ["unwrapAsyncOr", asyncFns.unwrapOrAsync],
-    ["unwrapAsyncOrElse", asyncFns.unwrapOrElseAsync],
-    ["unwrapAsyncOrThrow", asyncFns.unwrapOrThrowAsync],
-    ["tryPromiseOr", asyncFns.tryOrAsync],
-    ["tryPromiseOrElse", asyncFns.tryOrElseAsync],
-    ["tryPromiseOrThrow", asyncFns.tryOrThrowAsync],
+    ["tryPromiseOr", asyncFns.tryAsyncOr],
+    ["tryPromiseOrElse", asyncFns.tryAsyncOrElse],
+    ["tryPromiseOrThrow", asyncFns.tryAsyncOrThrow],
   ] as const)("%s is the renamed function", (name, fn) => {
     expect(deprecated[name]).toBe(fn);
   });

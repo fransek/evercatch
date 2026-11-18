@@ -1,12 +1,12 @@
 import {
   fromAsync,
-  fromThrowableAsync,
-  tryOrAsync,
-  tryOrElseAsync,
-  tryOrThrowAsync,
-  unwrapOrAsync,
-  unwrapOrElseAsync,
-  unwrapOrThrowAsync,
+  fromAsyncThrowable,
+  tryAsyncOr,
+  tryAsyncOrElse,
+  tryAsyncOrThrow,
+  unwrapAsyncOr,
+  unwrapAsyncOrElse,
+  unwrapAsyncOrThrow,
 } from "./async";
 import { err, ok } from "./shared";
 import {
@@ -181,7 +181,8 @@ export type InferErr<R extends Inferable> = ErrOf<ResultOf<R>>;
  *
  * Every member is also exported on its own, so this is only a matter of
  * preference. Where a standalone name has to say what it works on, such as
- * the `Async` suffix, the grouped name leaves that to the namespace.
+ * the `Async` in `unwrapAsyncOr`, the grouped name leaves that to the
+ * namespace.
  * @group Namespaces
  * @namespace
  * @example
@@ -223,7 +224,8 @@ export const Result = {
  *
  * Every member is also exported on its own, so this is only a matter of
  * preference. Where a standalone name has to say what it works on, such as
- * the `Async` suffix, the grouped name leaves that to the namespace.
+ * the `Async` in `unwrapAsyncOr`, the grouped name leaves that to the
+ * namespace.
  * @group Namespaces
  * @namespace
  * @example
@@ -247,7 +249,8 @@ export const ResultFn = {
  *
  * Every member is also exported on its own, so this is only a matter of
  * preference. Where a standalone name has to say what it works on, such as
- * the `Async` suffix, the grouped name leaves that to the namespace.
+ * the `Async` in `unwrapAsyncOr`, the grouped name leaves that to the
+ * namespace.
  * @group Namespaces
  * @namespace
  * @example
@@ -267,18 +270,18 @@ export const ResultFn = {
 export const ResultAsync = {
   /** See {@link fromAsync}. */
   from: fromAsync,
-  /** See {@link unwrapOrThrowAsync}. */
-  unwrapOrThrow: unwrapOrThrowAsync,
-  /** See {@link unwrapOrAsync}. */
-  unwrapOr: unwrapOrAsync,
-  /** See {@link unwrapOrElseAsync}. */
-  unwrapOrElse: unwrapOrElseAsync,
-  /** See {@link tryOrAsync}. */
-  tryOr: tryOrAsync,
-  /** See {@link tryOrElseAsync}. */
-  tryOrElse: tryOrElseAsync,
-  /** See {@link tryOrThrowAsync}. */
-  tryOrThrow: tryOrThrowAsync,
+  /** See {@link unwrapAsyncOrThrow}. */
+  unwrapOrThrow: unwrapAsyncOrThrow,
+  /** See {@link unwrapAsyncOr}. */
+  unwrapOr: unwrapAsyncOr,
+  /** See {@link unwrapAsyncOrElse}. */
+  unwrapOrElse: unwrapAsyncOrElse,
+  /** See {@link tryAsyncOr}. */
+  tryOr: tryAsyncOr,
+  /** See {@link tryAsyncOrElse}. */
+  tryOrElse: tryAsyncOrElse,
+  /** See {@link tryAsyncOrThrow}. */
+  tryOrThrow: tryAsyncOrThrow,
 } as const;
 
 /**
@@ -287,7 +290,8 @@ export const ResultAsync = {
  *
  * Every member is also exported on its own, so this is only a matter of
  * preference. Where a standalone name has to say what it works on, such as
- * the `Async` suffix, the grouped name leaves that to the namespace.
+ * the `Async` in `unwrapAsyncOr`, the grouped name leaves that to the
+ * namespace.
  * @group Namespaces
  * @namespace
  * @example
@@ -300,6 +304,6 @@ export const ResultAsync = {
  * ```
  */
 export const ResultAsyncFn = {
-  /** See {@link fromThrowableAsync}. */
-  from: fromThrowableAsync,
+  /** See {@link fromAsyncThrowable}. */
+  from: fromAsyncThrowable,
 } as const;

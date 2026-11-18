@@ -2,13 +2,13 @@ import { describe, expect, expectTypeOf, it, vi } from "vitest";
 
 import {
   fromAsync,
-  fromThrowableAsync,
-  tryOrAsync,
-  tryOrElseAsync,
-  tryOrThrowAsync,
-  unwrapOrAsync,
-  unwrapOrElseAsync,
-  unwrapOrThrowAsync,
+  fromAsyncThrowable,
+  tryAsyncOr,
+  tryAsyncOrElse,
+  tryAsyncOrThrow,
+  unwrapAsyncOr,
+  unwrapAsyncOrElse,
+  unwrapAsyncOrThrow,
 } from "./async";
 import { err, ok } from "./shared";
 import {
@@ -166,7 +166,7 @@ describe("inference types", () => {
     const safeParse = fromThrowable((raw: string): { foo: string } =>
       JSON.parse(raw),
     );
-    const safeDouble = fromThrowableAsync(
+    const safeDouble = fromAsyncThrowable(
       async (value: number) => value * 2,
       (): FetchError => "NETWORK",
     );
@@ -287,12 +287,12 @@ describe("namespaces", () => {
         "tryOrThrow",
       ]);
       expect(ResultAsync.from).toBe(fromAsync);
-      expect(ResultAsync.unwrapOrThrow).toBe(unwrapOrThrowAsync);
-      expect(ResultAsync.unwrapOr).toBe(unwrapOrAsync);
-      expect(ResultAsync.unwrapOrElse).toBe(unwrapOrElseAsync);
-      expect(ResultAsync.tryOr).toBe(tryOrAsync);
-      expect(ResultAsync.tryOrElse).toBe(tryOrElseAsync);
-      expect(ResultAsync.tryOrThrow).toBe(tryOrThrowAsync);
+      expect(ResultAsync.unwrapOrThrow).toBe(unwrapAsyncOrThrow);
+      expect(ResultAsync.unwrapOr).toBe(unwrapAsyncOr);
+      expect(ResultAsync.unwrapOrElse).toBe(unwrapAsyncOrElse);
+      expect(ResultAsync.tryOr).toBe(tryAsyncOr);
+      expect(ResultAsync.tryOrElse).toBe(tryAsyncOrElse);
+      expect(ResultAsync.tryOrThrow).toBe(tryAsyncOrThrow);
     });
 
     it("should share its name with the type it groups", async () => {
@@ -326,7 +326,7 @@ describe("namespaces", () => {
   describe("ResultAsyncFn", () => {
     it("should group the functions that create a ResultAsyncFn", () => {
       expect(Object.keys(ResultAsyncFn)).toEqual(["from"]);
-      expect(ResultAsyncFn.from).toBe(fromThrowableAsync);
+      expect(ResultAsyncFn.from).toBe(fromAsyncThrowable);
     });
 
     it("should share its name with the type it groups", async () => {

@@ -211,7 +211,8 @@ type `never`.
 Every namespace member is also exported on its own. They are the same
 functions, so this is mostly a matter of preference, but importing them
 individually lets your bundler drop the ones you don't use. Standalone names
-that work on promises end in `Async`, since there is no namespace to say so.
+that work on promises have `Async` right after the verb, as in `unwrapAsyncOr`,
+since there is no namespace to say so.
 
 | Namespace                   | Standalone           |
 | --------------------------- | -------------------- |
@@ -225,14 +226,14 @@ that work on promises end in `Async`, since there is no namespace to say so.
 | `Result.tryOrElse`          | `tryOrElse`          |
 | `Result.tryOrThrow`         | `tryOrThrow`         |
 | `ResultAsync.from`          | `fromAsync`          |
-| `ResultAsync.unwrapOr`      | `unwrapOrAsync`      |
-| `ResultAsync.unwrapOrElse`  | `unwrapOrElseAsync`  |
-| `ResultAsync.unwrapOrThrow` | `unwrapOrThrowAsync` |
-| `ResultAsync.tryOr`         | `tryOrAsync`         |
-| `ResultAsync.tryOrElse`     | `tryOrElseAsync`     |
-| `ResultAsync.tryOrThrow`    | `tryOrThrowAsync`    |
+| `ResultAsync.unwrapOr`      | `unwrapAsyncOr`      |
+| `ResultAsync.unwrapOrElse`  | `unwrapAsyncOrElse`  |
+| `ResultAsync.unwrapOrThrow` | `unwrapAsyncOrThrow` |
+| `ResultAsync.tryOr`         | `tryAsyncOr`         |
+| `ResultAsync.tryOrElse`     | `tryAsyncOrElse`     |
+| `ResultAsync.tryOrThrow`    | `tryAsyncOrThrow`    |
 | `ResultFn.from`             | `fromThrowable`      |
-| `ResultAsyncFn.from`        | `fromThrowableAsync` |
+| `ResultAsyncFn.from`        | `fromAsyncThrowable` |
 
 ## Documentation
 

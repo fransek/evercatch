@@ -1,23 +1,19 @@
 export {
   fromAsync,
-  fromThrowableAsync,
-  tryOrAsync,
-  tryOrElseAsync,
-  tryOrThrowAsync,
-  unwrapOrAsync,
-  unwrapOrElseAsync,
-  unwrapOrThrowAsync,
+  fromAsyncThrowable,
+  tryAsyncOr,
+  tryAsyncOrElse,
+  tryAsyncOrThrow,
+  unwrapAsyncOr,
+  unwrapAsyncOrElse,
+  unwrapAsyncOrThrow,
 } from "./async";
 export {
-  fromAsyncThrowable,
   fromPromise,
   resultFrom,
   tryPromiseOr,
   tryPromiseOrElse,
   tryPromiseOrThrow,
-  unwrapAsyncOr,
-  unwrapAsyncOrElse,
-  unwrapAsyncOrThrow,
 } from "./deprecated";
 export type { NotNullish } from "./deprecated";
 export { err, ok } from "./shared";
