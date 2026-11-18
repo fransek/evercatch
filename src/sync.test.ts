@@ -4,8 +4,9 @@ import { err, ok } from "./shared";
 import {
   fromThrowable,
   resultFrom,
-  unwrapFromOr,
-  unwrapFromOrElse,
+  tryOr,
+  tryOrElse,
+  tryOrThrow,
   unwrapOr,
   unwrapOrElse,
   unwrapOrThrow,
@@ -137,17 +138,17 @@ describe("sync", () => {
     });
   });
 
-  describe("unwrapFromOr", () => {
+  describe("tryOr", () => {
     it("should return the value when the function succeeds", () => {
       const tapErr = vi.fn();
 
-      expect(unwrapFromOr(() => 42, 0, tapErr)).toBe(42);
+      expect(tryOr(() => 42, 0, tapErr)).toBe(42);
       expect(tapErr).not.toHaveBeenCalled();
     });
 
     it("should return the fallback when the function throws", () => {
       expect(
-        unwrapFromOr(() => {
+        tryOr(() => {
           throw new Error("test");
         }, 0),
       ).toBe(0);
@@ -157,7 +158,7 @@ describe("sync", () => {
       const error = new Error("test");
       const tapErr = vi.fn();
 
-      unwrapFromOr(
+      tryOr(
         () => {
           throw error;
         },
@@ -171,7 +172,7 @@ describe("sync", () => {
     it("should wrap non-Error throwables before calling tapErr", () => {
       const tapErr = vi.fn();
 
-      unwrapFromOr(
+      tryOr(
         () => {
           throw "original";
         },
@@ -185,11 +186,11 @@ describe("sync", () => {
     });
   });
 
-  describe("unwrapFromOrElse", () => {
+  describe("tryOrElse", () => {
     it("should return the value when the function succeeds without calling fallback", () => {
       const fallbackFn = vi.fn(() => 0);
 
-      expect(unwrapFromOrElse(() => 42, fallbackFn)).toBe(42);
+      expect(tryOrElse(() => 42, fallbackFn)).toBe(42);
       expect(fallbackFn).not.toHaveBeenCalled();
     });
 
@@ -198,7 +199,7 @@ describe("sync", () => {
       const fallbackFn = vi.fn((e: Error) => e.message.length);
 
       expect(
-        unwrapFromOrElse(() => {
+        tryOrElse(() => {
           throw error;
         }, fallbackFn),
       ).toBe(4);
@@ -206,7 +207,7 @@ describe("sync", () => {
     });
 
     it("should wrap non-Error throwables before calling fallback", () => {
-      const value = unwrapFromOrElse(
+      const value = tryOrElse(
         () => {
           throw "original";
         },
@@ -214,6 +215,45 @@ describe("sync", () => {
       );
 
       expect(value).toBe("original");
+    });
+  });
+
+  describe("tryOrThrow", () => {
+    it("should return the value when the function succeeds", () => {
+      expect(tryOrThrow(() => 42)).toBe(42);
+    });
+
+    it("should rethrow errors as is by default", () => {
+      const error = new Error("test");
+
+      expect(() =>
+        tryOrThrow(() => {
+          throw error;
+        }),
+      ).toThrow(error);
+    });
+
+    it("should wrap non-Error throwables by default", () => {
+      try {
+        tryOrThrow(() => {
+          throw "original";
+        });
+        expect.unreachable();
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
+        expect((error as Error).cause).toBe("original");
+      }
+    });
+
+    it("should throw the mapped error", () => {
+      const mapErr = vi.fn(() => "MAPPED" as const);
+
+      expect(() =>
+        tryOrThrow(() => {
+          throw "original";
+        }, mapErr),
+      ).toThrow("MAPPED");
+      expect(mapErr).toHaveBeenCalledWith("original");
     });
   });
 });

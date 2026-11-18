@@ -3,11 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 import {
   fromAsyncThrowable,
   fromPromise,
+  tryPromiseOr,
+  tryPromiseOrElse,
+  tryPromiseOrThrow,
   unwrapAsyncOr,
   unwrapAsyncOrElse,
   unwrapAsyncOrThrow,
-  unwrapPromiseOr,
-  unwrapPromiseOrElse,
 } from "./async";
 import { err, ok } from "./shared";
 
@@ -138,19 +139,19 @@ describe("async", () => {
     });
   });
 
-  describe("unwrapPromiseOr", () => {
+  describe("tryPromiseOr", () => {
     it("should return the value when the promise resolves", async () => {
       const tapErr = vi.fn();
 
-      await expect(
-        unwrapPromiseOr(Promise.resolve(42), 0, tapErr),
-      ).resolves.toBe(42);
+      await expect(tryPromiseOr(Promise.resolve(42), 0, tapErr)).resolves.toBe(
+        42,
+      );
       expect(tapErr).not.toHaveBeenCalled();
     });
 
     it("should return the fallback when the promise rejects", async () => {
       await expect(
-        unwrapPromiseOr(Promise.reject(new Error("test")), 0),
+        tryPromiseOr(Promise.reject(new Error("test")), 0),
       ).resolves.toBe(0);
     });
 
@@ -158,7 +159,7 @@ describe("async", () => {
       const error = new Error("test");
       const tapErr = vi.fn();
 
-      await unwrapPromiseOr(Promise.reject(error), 0, tapErr);
+      await tryPromiseOr(Promise.reject(error), 0, tapErr);
 
       expect(tapErr).toHaveBeenCalledWith(error);
     });
@@ -166,7 +167,7 @@ describe("async", () => {
     it("should wrap non-Error rejections before calling tapErr", async () => {
       const tapErr = vi.fn();
 
-      await unwrapPromiseOr(Promise.reject("original"), 0, tapErr);
+      await tryPromiseOr(Promise.reject("original"), 0, tapErr);
 
       const [error] = tapErr.mock.calls[0];
       expect(error).toBeInstanceOf(Error);
@@ -174,12 +175,12 @@ describe("async", () => {
     });
   });
 
-  describe("unwrapPromiseOrElse", () => {
+  describe("tryPromiseOrElse", () => {
     it("should return the value when the promise resolves without calling fallback", async () => {
       const fallbackFn = vi.fn(() => 0);
 
       await expect(
-        unwrapPromiseOrElse(Promise.resolve(42), fallbackFn),
+        tryPromiseOrElse(Promise.resolve(42), fallbackFn),
       ).resolves.toBe(42);
       expect(fallbackFn).not.toHaveBeenCalled();
     });
@@ -189,9 +190,39 @@ describe("async", () => {
       const fallbackFn = vi.fn((e: Error) => e.message.length);
 
       await expect(
-        unwrapPromiseOrElse(Promise.reject(error), fallbackFn),
+        tryPromiseOrElse(Promise.reject(error), fallbackFn),
       ).resolves.toBe(4);
       expect(fallbackFn).toHaveBeenCalledWith(error);
+    });
+  });
+
+  describe("tryPromiseOrThrow", () => {
+    it("should return the value when the promise resolves", async () => {
+      await expect(tryPromiseOrThrow(Promise.resolve(42))).resolves.toBe(42);
+    });
+
+    it("should reject with the error as is by default", async () => {
+      const error = new Error("test");
+
+      await expect(tryPromiseOrThrow(Promise.reject(error))).rejects.toBe(
+        error,
+      );
+    });
+
+    it("should wrap non-Error rejections by default", async () => {
+      const promise = tryPromiseOrThrow(Promise.reject("original"));
+
+      await expect(promise).rejects.toBeInstanceOf(Error);
+      await expect(promise).rejects.toHaveProperty("cause", "original");
+    });
+
+    it("should reject with the mapped error", async () => {
+      const mapErr = vi.fn(() => "MAPPED" as const);
+
+      await expect(
+        tryPromiseOrThrow(Promise.reject("original"), mapErr),
+      ).rejects.toBe("MAPPED");
+      expect(mapErr).toHaveBeenCalledWith("original");
     });
   });
 });

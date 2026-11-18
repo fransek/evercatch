@@ -164,16 +164,16 @@ export function unwrapOrElse<T, E extends NotNullish<E> = Error>(
  * @returns The function's return value or the fallback.
  * @example
  * ```typescript
- * const config = unwrapFromOr(() => JSON.parse(raw), {});
+ * const config = tryOr(() => JSON.parse(raw), {});
  * ```
  * @example
  * ```typescript
- * const config = unwrapFromOr(() => JSON.parse(raw), {}, (error) =>
+ * const config = tryOr(() => JSON.parse(raw), {}, (error) =>
  *   console.warn("Invalid config, using defaults", error),
  * );
  * ```
  */
-export function unwrapFromOr<T>(
+export function tryOr<T>(
   fn: () => T,
   fallback: T,
   tapErr?: (err: Error) => void,
@@ -198,15 +198,42 @@ export function unwrapFromOr<T>(
  * @returns The function's return value or the computed fallback.
  * @example
  * ```typescript
- * const config = unwrapFromOrElse(
+ * const config = tryOrElse(
  *   () => JSON.parse(raw),
  *   (error) => ({ error: error.message }),
  * );
  * ```
  */
-export function unwrapFromOrElse<T>(
-  fn: () => T,
-  fallbackFn: (err: Error) => T,
-): T {
+export function tryOrElse<T>(fn: () => T, fallbackFn: (err: Error) => T): T {
   return unwrapOrElse(resultFrom(fn), fallbackFn);
+}
+
+/**
+ * Executes a function, rethrowing any error it throws through `mapErr`.
+ *
+ * Shorthand for `unwrapOrThrow(resultFrom(fn, mapErr))`. Useful for turning
+ * whatever a function throws into an error of your own before it propagates.
+ *
+ * Without `mapErr`, anything thrown that isn't an `Error` is wrapped in one,
+ * with the original value kept as `cause`, just as {@link resultFrom} does.
+ * @group Sync
+ * @template T The return type of the function.
+ * @template E The type of the thrown error.
+ * @param fn The function to execute.
+ * @param mapErr A function to map errors to a specific type before throwing.
+ * @returns The function's return value.
+ * @throws The mapped error if the function throws.
+ * @example
+ * ```typescript
+ * const config = tryOrThrow(
+ *   () => JSON.parse(raw),
+ *   (error) => new ConfigError("Invalid config", { cause: error }),
+ * );
+ * ```
+ */
+export function tryOrThrow<T, E extends NotNullish<E> = Error>(
+  fn: () => T,
+  mapErr: (err: unknown) => E = defaultErrorMapper,
+): T {
+  return unwrapOrThrow(resultFrom(fn, mapErr));
 }

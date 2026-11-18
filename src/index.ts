@@ -1,18 +1,20 @@
 export {
   fromAsyncThrowable,
   fromPromise,
+  tryPromiseOr,
+  tryPromiseOrElse,
+  tryPromiseOrThrow,
   unwrapAsyncOr,
   unwrapAsyncOrElse,
   unwrapAsyncOrThrow,
-  unwrapPromiseOr,
-  unwrapPromiseOrElse,
 } from "./async";
 export { err, ok } from "./shared";
 export {
   fromThrowable,
   resultFrom,
-  unwrapFromOr,
-  unwrapFromOrElse,
+  tryOr,
+  tryOrElse,
+  tryOrThrow,
   unwrapOr,
   unwrapOrElse,
   unwrapOrThrow,
