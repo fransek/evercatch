@@ -10,6 +10,16 @@ import {
   unwrapAsyncOrElse,
   unwrapAsyncOrThrow,
 } from "./async";
+import {
+  bind,
+  bindAsync,
+  bindAsyncFrom,
+  bindFrom,
+  genAsync,
+  genAsyncFn,
+  genFn,
+  genSync,
+} from "./gen";
 import { err, ok } from "./shared";
 import {
   fromSync,
@@ -215,6 +225,9 @@ describe("namespaces", () => {
         "tryOr",
         "tryOrElse",
         "tryOrThrow",
+        "gen",
+        "bind",
+        "bindFrom",
       ]);
       expect(Result.ok).toBe(ok);
       expect(Result.err).toBe(err);
@@ -225,6 +238,9 @@ describe("namespaces", () => {
       expect(Result.tryOr).toBe(tryOr);
       expect(Result.tryOrElse).toBe(tryOrElse);
       expect(Result.tryOrThrow).toBe(tryOrThrow);
+      expect(Result.gen).toBe(genSync);
+      expect(Result.bind).toBe(bind);
+      expect(Result.bindFrom).toBe(bindFrom);
     });
 
     it("should share its name with the type it groups", () => {
@@ -262,8 +278,9 @@ describe("namespaces", () => {
 
   describe("ResultFn", () => {
     it("should group the functions that create a ResultFn", () => {
-      expect(Object.keys(ResultFn)).toEqual(["from"]);
+      expect(Object.keys(ResultFn)).toEqual(["from", "gen"]);
       expect(ResultFn.from).toBe(fromThrowable);
+      expect(ResultFn.gen).toBe(genFn);
     });
 
     it("should share its name with the type it groups", () => {
@@ -285,6 +302,9 @@ describe("namespaces", () => {
         "tryOr",
         "tryOrElse",
         "tryOrThrow",
+        "gen",
+        "bind",
+        "bindFrom",
       ]);
       expect(ResultAsync.from).toBe(fromAsync);
       expect(ResultAsync.unwrapOrThrow).toBe(unwrapAsyncOrThrow);
@@ -293,6 +313,9 @@ describe("namespaces", () => {
       expect(ResultAsync.tryOr).toBe(tryAsyncOr);
       expect(ResultAsync.tryOrElse).toBe(tryAsyncOrElse);
       expect(ResultAsync.tryOrThrow).toBe(tryAsyncOrThrow);
+      expect(ResultAsync.gen).toBe(genAsync);
+      expect(ResultAsync.bind).toBe(bindAsync);
+      expect(ResultAsync.bindFrom).toBe(bindAsyncFrom);
     });
 
     it("should share its name with the type it groups", async () => {
@@ -325,8 +348,9 @@ describe("namespaces", () => {
 
   describe("ResultAsyncFn", () => {
     it("should group the functions that create a ResultAsyncFn", () => {
-      expect(Object.keys(ResultAsyncFn)).toEqual(["from"]);
+      expect(Object.keys(ResultAsyncFn)).toEqual(["from", "gen"]);
       expect(ResultAsyncFn.from).toBe(fromAsyncThrowable);
+      expect(ResultAsyncFn.gen).toBe(genAsyncFn);
     });
 
     it("should share its name with the type it groups", async () => {

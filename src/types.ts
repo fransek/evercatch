@@ -8,6 +8,16 @@ import {
   unwrapAsyncOrElse,
   unwrapAsyncOrThrow,
 } from "./async";
+import {
+  bind,
+  bindAsync,
+  bindAsyncFrom,
+  bindFrom,
+  genAsync,
+  genAsyncFn,
+  genFn,
+  genSync,
+} from "./gen";
 import { err, ok } from "./shared";
 import {
   fromSync,
@@ -216,6 +226,12 @@ export const Result = {
   tryOrElse,
   /** See {@link tryOrThrow}. */
   tryOrThrow,
+  /** See {@link genSync}. */
+  gen: genSync,
+  /** See {@link bind}. */
+  bind,
+  /** See {@link bindFrom}. */
+  bindFrom,
 } as const;
 
 /**
@@ -240,6 +256,8 @@ export const Result = {
 export const ResultFn = {
   /** See {@link fromThrowable}. */
   from: fromThrowable,
+  /** See {@link genFn}. */
+  gen: genFn,
 } as const;
 
 /**
@@ -282,6 +300,12 @@ export const ResultAsync = {
   tryOrElse: tryAsyncOrElse,
   /** See {@link tryAsyncOrThrow}. */
   tryOrThrow: tryAsyncOrThrow,
+  /** See {@link genAsync}. */
+  gen: genAsync,
+  /** See {@link bindAsync}. */
+  bind: bindAsync,
+  /** See {@link bindAsyncFrom}. */
+  bindFrom: bindAsyncFrom,
 } as const;
 
 /**
@@ -306,4 +330,6 @@ export const ResultAsync = {
 export const ResultAsyncFn = {
   /** See {@link fromAsyncThrowable}. */
   from: fromAsyncThrowable,
+  /** See {@link genAsyncFn}. */
+  gen: genAsyncFn,
 } as const;

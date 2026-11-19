@@ -16,6 +16,16 @@ export {
   tryPromiseOrThrow,
 } from "./deprecated";
 export type { NotNullish } from "./deprecated";
+export {
+  bind,
+  bindAsync,
+  bindAsyncFrom,
+  bindFrom,
+  genAsync,
+  genAsyncFn,
+  genFn,
+  genSync,
+} from "./gen";
 export { err, ok } from "./shared";
 export {
   fromSync,
