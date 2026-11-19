@@ -182,6 +182,70 @@ async function fetchUserData(): ResultAsync<UserData, Error> {
 }
 ```
 
+## Generators
+
+When a function has many fallible steps, the early returns pile up.
+`Result.gen` runs a generator in which `yield* Result.bind(result)` unwraps a
+result to its value. The first error stops the body and becomes the outcome,
+so the steps read like straight-line code:
+
+```typescript
+import { Result, ResultAsync } from "evercatch";
+import { auth } from "./auth";
+import type { UserData } from "./types";
+
+async function fetchUserData(): ResultAsync<UserData, Error> {
+  return ResultAsync.gen(async function* () {
+    const user = yield* ResultAsync.bindFrom(auth());
+    const response = yield* ResultAsync.bindFrom(
+      fetch(`https://api.example.com/user/${user.id}`),
+    );
+    if (!response.ok) return Result.err(new Error("Failed to fetch user data"));
+
+    return await ResultAsync.from<UserData>(response.json());
+  });
+}
+```
+
+The `bindFrom` helpers catch and bind in one step, taking an optional `mapErr`
+just like `from`:
+
+| Helper                    | Shorthand for                            |
+| ------------------------- | ---------------------------------------- |
+| `Result.bindFrom(fn)`     | `Result.bind(Result.from(fn))`           |
+| `ResultAsync.bind(p)`     | `Result.bind(await p)`                   |
+| `ResultAsync.bindFrom(p)` | `Result.bind(await ResultAsync.from(p))` |
+
+The `ResultAsync` ones only work inside `ResultAsync.gen`.
+
+The body returns a result of its own, ok or err, and the error type of the
+whole thing is the union of every error the body can produce. `finally` blocks
+still run when an error cuts the body short. Anything the body throws is not
+caught, so run throwing calls through `bindFrom`.
+
+Use `Result.gen` with a plain `function*` for sync code, and
+`ResultAsync.gen` with an `async function*` when you need to `await`.
+
+To define a function with a generator body, use `ResultFn.gen` or
+`ResultAsyncFn.gen`. Arguments are passed through to the body, and the body
+runs anew on every call:
+
+```typescript
+import { Result, ResultAsync, ResultAsyncFn } from "evercatch";
+import type { UserData } from "./types";
+
+const fetchUserData = ResultAsyncFn.gen(async function* (id: string) {
+  const response = yield* ResultAsync.bindFrom(
+    fetch(`https://api.example.com/user/${id}`),
+  );
+  if (!response.ok) return Result.err(new Error("Failed to fetch user data"));
+
+  return await ResultAsync.from<UserData>(response.json());
+});
+
+const [error, user] = await fetchUserData("42");
+```
+
 ## Inferring types
 
 `InferOk` and `InferErr` pull the value and error types out of a result, an
@@ -225,6 +289,9 @@ since there is no namespace to say so.
 | `Result.tryOr`              | `tryOr`              |
 | `Result.tryOrElse`          | `tryOrElse`          |
 | `Result.tryOrThrow`         | `tryOrThrow`         |
+| `Result.gen`                | `genSync`            |
+| `Result.bind`               | `bind`               |
+| `Result.bindFrom`           | `bindFrom`           |
 | `ResultAsync.from`          | `fromAsync`          |
 | `ResultAsync.unwrapOr`      | `unwrapAsyncOr`      |
 | `ResultAsync.unwrapOrElse`  | `unwrapAsyncOrElse`  |
@@ -232,8 +299,13 @@ since there is no namespace to say so.
 | `ResultAsync.tryOr`         | `tryAsyncOr`         |
 | `ResultAsync.tryOrElse`     | `tryAsyncOrElse`     |
 | `ResultAsync.tryOrThrow`    | `tryAsyncOrThrow`    |
+| `ResultAsync.gen`           | `genAsync`           |
+| `ResultAsync.bind`          | `bindAsync`          |
+| `ResultAsync.bindFrom`      | `bindAsyncFrom`      |
 | `ResultFn.from`             | `fromThrowable`      |
+| `ResultFn.gen`              | `genFn`              |
 | `ResultAsyncFn.from`        | `fromAsyncThrowable` |
+| `ResultAsyncFn.gen`         | `genAsyncFn`         |
 
 ## Documentation
 
